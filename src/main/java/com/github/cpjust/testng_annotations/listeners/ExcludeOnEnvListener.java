@@ -1,11 +1,14 @@
 package com.github.cpjust.testng_annotations.listeners;
 
 import com.github.cpjust.testng_annotations.annotations.ExcludeOnEnv;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.IMethodInstance;
 import org.testng.IMethodInterceptor;
 import org.testng.ITestContext;
 
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,15 +16,16 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * A listener for TestNG tests that are annotated with `@ExcludeOnEnv`.
- * To register this listener, either define it in the `src/test/resources/META-INF/services/org.testng.ITestNGListener`
- * file or add the `@Listeners({ExcludeOnEnvListener.class})` annotation to the test class.
+ * A listener for TestNG tests that are annotated with <code>@ExcludeOnEnv</code>.
+ * To register this listener, either define it in the <code>src/test/resources/META-INF/services/org.testng.ITestNGListener</code>
+ * file or add the <code>@Listeners({ExcludeOnEnvListener.class})</code> annotation to the test class.
  */
 @Slf4j
+@NoArgsConstructor
 public class ExcludeOnEnvListener implements IMethodInterceptor {
     /**
      * Intercepts the list of tests that TestNG intends to run and allows us to modify that list by removing any tests
-     * that are annotated with `@ExcludeOnEnv` which has an environment that matches the current environment.
+     * that are annotated with <code>@ExcludeOnEnv</code> which has an environment that matches the current environment.
      *
      * @param methods The list of test methods to filter.
      * @param context Unused.
@@ -31,29 +35,53 @@ public class ExcludeOnEnvListener implements IMethodInterceptor {
     public List<IMethodInstance> intercept(List<IMethodInstance> methods, ITestContext context) {
         List<IMethodInstance> result = new ArrayList<>();
 
-        for (IMethodInstance m : methods) {
-            Method testMethod = m.getMethod().getConstructorOrMethod().getMethod();
+        for (IMethodInstance methodInstance : methods) {
+            Class<?> testClass = methodInstance.getMethod().getRealClass();
+            Method testMethod = methodInstance.getMethod().getConstructorOrMethod().getMethod();
+
+            Objects.requireNonNull(testClass, "testClass was null!");
             Objects.requireNonNull(testMethod, "testMethod was null!");
+
             log.debug("intercept() is checking method: {}", testMethod.getName());
 
-            if (!testMethod.isAnnotationPresent(ExcludeOnEnv.class)) {
-                log.debug("-> adding method because it doesn't have a ExcludeOnEnv annotation.");
-                result.add(m);
+            if (!shouldExcludeTest(testClass, testMethod)) {
+                log.debug("-> adding method because it doesn't exclude the current environment.");
+                result.add(methodInstance);
             } else {
-                ExcludeOnEnv excludeOnEnv = testMethod.getAnnotation(ExcludeOnEnv.class);
-                String[] excludedEnvs = excludeOnEnv.value();
-                String propertyName = excludeOnEnv.propertyName();
-                String currentEnv = System.getProperty(propertyName, null);
-
-                if (!Arrays.asList(excludedEnvs).contains(currentEnv)) {
-                    log.debug("-> adding method because it doesn't exclude env '{}'.", currentEnv);
-                    result.add(m); // Add test if currentEnv doesn't match any excluded environment.
-                } else {
-                    log.debug("-> method NOT added because it excludes env '{}'.", currentEnv);
-                }
+                log.debug("-> method NOT added due to environment exclusion.");
             }
         }
 
         return result;
+    }
+
+    /**
+     * Determines if a test method or test class should be excluded based on its annotations.
+     *
+     * @param testClass  The test class to check.
+     * @param testMethod The test method to check.
+     * @return True if the class or method should be excluded, otherwise false.
+     */
+    private boolean shouldExcludeTest(@NonNull Class<?> testClass, @NonNull Method testMethod) {
+        return isExcludedByAnnotation(testClass) || isExcludedByAnnotation(testMethod);
+    }
+
+    /**
+     * Checks if a class or method has the <code>@ExcludeOnEnv</code> annotation and should be excluded.
+     *
+     * @param element The AnnotatedElement to check.
+     * @return True if the AnnotatedElement should be excluded, otherwise false.
+     */
+    private boolean isExcludedByAnnotation(@NonNull AnnotatedElement element) {
+        if (!element.isAnnotationPresent(ExcludeOnEnv.class)) {
+            return false;
+        }
+
+        ExcludeOnEnv excludeOnEnv = element.getAnnotation(ExcludeOnEnv.class);
+        String[] excludedEnvs = excludeOnEnv.value();
+        String propertyName = excludeOnEnv.propertyName();
+        String currentEnv = System.getProperty(propertyName, null);
+
+        return Arrays.asList(excludedEnvs).contains(currentEnv);
     }
 }

@@ -1,6 +1,12 @@
 # testng-annotations
 The testng-annotations project contains some extra annotations that are useful when running tests in TestNG.
 
+## Requirements:
+- Minimum Java version: 11
+- TestNG 7.x
+  - NOTE: TestNG upgraded to Java 11 starting from 7.6.0.
+  - If you need to port this project to Java 8, you won't be able to go beyond TestNG 7.5.
+
 ## Annotations:
 
 ### @ExcludeOnEnv

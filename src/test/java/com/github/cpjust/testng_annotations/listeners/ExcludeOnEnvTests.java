@@ -21,13 +21,13 @@ public class ExcludeOnEnvTests extends TestBase {
         testsRun.add(getCurrentMethodName());
     }
 
-    @ExcludeOnEnv(value = {"badEnv"})
+    @ExcludeOnEnv(value = "badEnv")
     @Test
     public void testWithExcludedEnv_isNotRun() {
         testsRun.add(getCurrentMethodName());
     }
 
-    @ExcludeOnEnv(value = {"goodEnv"})
+    @ExcludeOnEnv(value = "goodEnv")
     @Test
     public void testWithNonExcludedEnv_isRun() {
         testsRun.add(getCurrentMethodName());
