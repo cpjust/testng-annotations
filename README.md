@@ -18,6 +18,31 @@ Ex. If a test is annotated with `@ExcludeOnEnv(value = {"Stage", "Prod"}, proper
 with the `-Denvironment=Prod` option, the test will be excluded.  If you omit the `propertyName` attribute, it will use
 `"env"` as the default property to check.
 
+Tests should be excluded using the following rules:
+
+|                     | No class annotation: | Include by class: | Exclude by class: |
+| ------------------- | -------------------- | ----------------- | ----------------- |
+| No test annotation: |    INCLUDE           |   INCLUDE         |   EXCLUDE         |
+| Include by test:    |    INCLUDE           |   INCLUDE         |   EXCLUDE         |
+| Exclude by test:    |    EXCLUDE           |   EXCLUDE         |   EXCLUDE         |
+
+### @IncludeOnEnv
+This annotation will include tests if the current environment (as defined by a Java property) matches one of the
+environments to be included.  This annotation will not just mark a test as skipped, it will not even attempt to run the
+test and the test will not appear in the list of tests that were run if the test was excluded.
+
+Ex. If a test is annotated with `@IncludeOnEnv(value = {"Stage", "Prod"}, propertyName = "environment")` and you run
+with the `-Denvironment=Prod` option, the test will be included.  If you omit the `propertyName` attribute, it will use
+`"env"` as the default property to check.
+
+Tests should be included using the following rules:
+
+|                     | No class annotation: | Include by class: | Exclude by class: |
+| ------------------- | -------------------- | ----------------- | ----------------- |
+| No test annotation: |    INCLUDE           |   INCLUDE         |   EXCLUDE         |
+| Include by test:    |    INCLUDE           |   INCLUDE         |   INCLUDE         |
+| Exclude by test:    |    EXCLUDE           |   EXCLUDE         |   EXCLUDE         |
+
 ## Listeners:
 
 ### ExcludeOnEnvListener
@@ -25,6 +50,12 @@ This is the listener for TestNG tests that are annotated with `@ExcludeOnEnv`.
 To register this listener, either define it in the `src/test/resources/META-INF/services/org.testng.ITestNGListener`
 file (by adding `com.github.cpjust.testng_annotations.listeners.ExcludeOnEnvListener` to the file)
 or add the `@Listeners({ExcludeOnEnvListener.class})` annotation to the test class.
+
+### IncludeOnEnvListener
+This is the listener for TestNG tests that are annotated with `@IncludeOnEnv`.
+To register this listener, either define it in the `src/test/resources/META-INF/services/org.testng.ITestNGListener`
+file (by adding `com.github.cpjust.testng_annotations.listeners.IncludeOnEnvListener` to the file)
+or add the `@Listeners({IncludeOnEnvListener.class})` annotation to the test class.
 
 ## Notes on annotation implementations:
 After implementing the IAnnotationTransformer & IMethodInterceptor interfaces, getting TestNG to actually run them was tricky.

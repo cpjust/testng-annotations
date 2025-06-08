@@ -1,9 +1,10 @@
 package com.github.cpjust.testng_annotations.listeners;
 
 import com.github.cpjust.testng_annotations.TestBase;
-import com.github.cpjust.testng_annotations.annotations.ExcludeOnEnv;
+import com.github.cpjust.testng_annotations.annotations.IncludeOnEnv;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.annotations.DataProvider;
+import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
@@ -11,71 +12,68 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
 
 @Slf4j
-public class ExcludeOnEnvTests extends TestBase {
+@Listeners(value = IncludeOnEnvListener.class)
+public class IncludeOnEnvTests extends TestBase {
     private static final List<String> testsRun = new ArrayList<>();
 
     @Test
-    public void testWithNoExcludeOnEnv_isRun() {
+    public void testWithNoIncludeOnEnv_isRun() {
         testsRun.add(getCurrentMethodName());
     }
 
-    @ExcludeOnEnv(value = "matchEnv")
+    @IncludeOnEnv(value = "unmatchEnv")
     @Test
-    public void testWithExcludedEnv_isNotRun() {
+    public void testWithNonIncludedEnv_isNotRun() {
         testsRun.add(getCurrentMethodName());
     }
 
-    @ExcludeOnEnv(value = "unmatchEnv")
+    @IncludeOnEnv(value = "matchEnv")
     @Test
-    public void testWithNonExcludedEnv_isRun() {
+    public void testWithIncludedEnv_isRun() {
         testsRun.add(getCurrentMethodName());
     }
 
-    @ExcludeOnEnv(value = {"matchEnvironment"}, propertyName = "environment")
+    @IncludeOnEnv(value = {"unmatchEnvironment"}, propertyName = "environment")
     @Test
-    public void testWithExcludedEnv_customPropertyName_isNotRun() {
+    public void testWithNonIncludedEnv_customPropertyName_isNotRun() {
         testsRun.add(getCurrentMethodName());
     }
 
-    @ExcludeOnEnv(value = {"unmatchEnvironment"}, propertyName = "environment")
+    @IncludeOnEnv(value = {"matchEnvironment"}, propertyName = "environment")
     @Test
-    public void testWithNonExcludedEnv_customPropertyName_isRun() {
+    public void testWithIncludedEnv_customPropertyName_isRun() {
         testsRun.add(getCurrentMethodName());
     }
 
-    @ExcludeOnEnv(value = {"matchEnv", "unmatchEnv"})
+    @IncludeOnEnv(value = {"unmatchEnv", "matchEnv"})
     @Test
-    public void testWithExcludedAndNonExcludedEnvs_isNotRun() {
+    public void testWithIncludedAndNonIncludedEnvs_isRun() {
         testsRun.add(getCurrentMethodName());
     }
 
-    @ExcludeOnEnv(value = {"unmatchEnv", "betterEnv"})
-    @Test
-    public void testWithMultipleNonExcludedEnvs_isRun() {
-        testsRun.add(getCurrentMethodName());
-    }
-
-    @ExcludeOnEnv(value = {"matchEnv"})
+    @IncludeOnEnv(value = {"unmatchEnv"})
     @Test(dataProvider = "testData")
-    public void testWithExcludedEnv_isNotRun(String foo) {
+    public void testWithNonIncludedEnv_isNotRun(String foo) {
         testsRun.add(getCurrentMethodName(foo));
     }
 
-    @ExcludeOnEnv(value = {"unmatchEnv"})
+    @IncludeOnEnv(value = {"matchEnv"})
     @Test(dataProvider = "testData")
-    public void testWithNonExcludedEnv_isRun(String foo) {
+    public void testWithIncludedEnv_isRun(String foo) {
         testsRun.add(getCurrentMethodName(foo));
     }
 
     @Test(priority = 2)
     public void verifyTests() {
         log.debug("In verifyTests() checking expected tests against these tests that were run: {}", testsRun);
-        List<String> expectedIncludedTests = List.of("testWithNonExcludedEnv_isRun()", "testWithNonExcludedEnv_isRun(one)", "testWithNonExcludedEnv_isRun(two)",
-                "testWithNonExcludedEnv_customPropertyName_isRun()", "testWithMultipleNonExcludedEnvs_isRun()", "testWithNoExcludeOnEnv_isRun()");
-        List<String> expectedExcludedTests = List.of("testWithExcludedEnv_isNotRun()", "testWithExcludedEnv_isNotRun(one)", "testWithExcludedEnv_isNotRun(two)",
-                "testWithExcludedEnv_customPropertyName_isNotRun()", "testWithExcludedAndNonExcludedEnvs_isNotRun()");
+        List<String> expectedIncludedTests = List.of("testWithIncludedEnv_isRun()", "testWithIncludedEnv_isRun(one)", "testWithIncludedEnv_isRun(two)",
+                "testWithIncludedEnv_customPropertyName_isRun()", "testWithNoIncludeOnEnv_isRun()",
+                "testWithIncludedAndNonIncludedEnvs_isRun()");
+        List<String> expectedExcludedTests = List.of("testWithNonIncludedEnv_isNotRun()", "testWithNonIncludedEnv_isNotRun(one)", "testWithNonIncludedEnv_isNotRun(two)",
+                "testWithNonIncludedEnv_customPropertyName_isNotRun()");
 
         assertThat("Wrong number of tests run!", testsRun, hasSize(expectedIncludedTests.size()));
 

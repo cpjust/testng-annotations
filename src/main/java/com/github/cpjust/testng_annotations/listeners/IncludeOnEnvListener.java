@@ -1,0 +1,90 @@
+package com.github.cpjust.testng_annotations.listeners;
+
+import com.github.cpjust.testng_annotations.annotations.IncludeOnEnv;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import org.testng.IMethodInstance;
+import org.testng.IMethodInterceptor;
+import org.testng.ITestContext;
+
+import java.lang.reflect.AnnotatedElement;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * A listener for TestNG tests that are annotated with <code>@IncludeOnEnv</code>.
+ * To register this listener, either define it in the <code>src/test/resources/META-INF/services/org.testng.ITestNGListener</code>
+ * file or add the <code>@Listeners({IncludeOnEnvListener.class})</code> annotation to the test class.
+ */
+@Slf4j
+@NoArgsConstructor
+public class IncludeOnEnvListener implements IMethodInterceptor {
+    /**
+     * Intercepts the list of tests that TestNG intends to run and allows us to modify that list by removing any tests
+     * that are annotated with <code>@IncludeOnEnv</code> which has an environment that doesn't match the current environment.
+     *
+     * @param methods The list of test methods to filter.
+     * @param context Unused.
+     * @return The new list of test methods to run.
+     */
+    @Override
+    public List<IMethodInstance> intercept(List<IMethodInstance> methods, ITestContext context) {
+        return methods.stream()
+                .filter(this::shouldIncludeTest)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Determines if a test method or test class should be included based on its annotations.
+     *
+     * @param methodInstance The test method to check.
+     * @return True if the class or method should be included, otherwise false.
+     */
+    private boolean shouldIncludeTest(IMethodInstance methodInstance) {
+        AnnotatedElement testClass = methodInstance.getMethod().getRealClass();
+        AnnotatedElement testMethod = methodInstance.getMethod().getConstructorOrMethod().getMethod();
+
+        // Tests should be included using the following rules:
+        // |                     | No class annotation: | Include by class: | Exclude by class: |
+        // | ------------------- | -------------------- | ----------------- | ----------------- |
+        // | No test annotation: |    INCLUDE           |   INCLUDE         |   EXCLUDE         |
+        // | Include by test:    |    INCLUDE           |   INCLUDE         |   INCLUDE         |
+        // | Exclude by test:    |    EXCLUDE           |   EXCLUDE         |   EXCLUDE         |
+
+        boolean hasAnnotationOnClass = testClass.isAnnotationPresent(IncludeOnEnv.class);
+        boolean hasAnnotationOnTest = testMethod.isAnnotationPresent(IncludeOnEnv.class);
+        boolean shouldIncludeClass = isIncludedByAnnotation(testClass);
+        boolean shouldIncludeMethod = isIncludedByAnnotation(testMethod);
+        boolean shouldInclude = shouldIncludeMethod;
+
+        if (hasAnnotationOnClass && !shouldIncludeClass) {
+            shouldInclude = (hasAnnotationOnTest && shouldIncludeMethod);
+        }
+
+        log.debug("*** hasAnnotationOnClass: {}, hasAnnotationOnTest: {}, shouldIncludeClass: {}, shouldIncludeMethod: {}",
+                hasAnnotationOnClass, hasAnnotationOnTest, shouldIncludeClass, shouldIncludeMethod);
+
+        log.debug("intercept() is {}including method: {}", shouldInclude ? "" : "NOT ",
+                methodInstance.getMethod().getConstructorOrMethod().getMethod().getName());
+        return shouldInclude;
+    }
+
+    /**
+     * Checks if a class or method has the <code>@IncludeOnEnv</code> annotation and should be included.
+     *
+     * @param element The AnnotatedElement to check.
+     * @return True if the AnnotatedElement should be included or doesn't have a <code>@IncludeOnEnv</code> annotation, otherwise false.
+     */
+    private boolean isIncludedByAnnotation(@NonNull AnnotatedElement element) {
+        if (!element.isAnnotationPresent(IncludeOnEnv.class)) {
+            return true; // If no annotation, allow test.
+        }
+
+        IncludeOnEnv includeOnEnv = element.getAnnotation(IncludeOnEnv.class);
+        String env = System.getProperty(includeOnEnv.propertyName(), null);
+        return Arrays.asList(includeOnEnv.value())
+                .contains(env);
+    }
+}

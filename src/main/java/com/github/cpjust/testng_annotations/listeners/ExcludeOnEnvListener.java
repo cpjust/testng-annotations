@@ -63,6 +63,12 @@ public class ExcludeOnEnvListener implements IMethodInterceptor {
      * @return True if the class or method should be excluded, otherwise false.
      */
     private boolean shouldExcludeTest(@NonNull Class<?> testClass, @NonNull Method testMethod) {
+        // Tests should be excluded using the following rules:
+        // |                     | No class annotation: | Include by class: | Exclude by class: |
+        // | ------------------- | -------------------- | ----------------- | ----------------- |
+        // | No test annotation: |    INCLUDE           |   INCLUDE         |   EXCLUDE         |
+        // | Include by test:    |    INCLUDE           |   INCLUDE         |   EXCLUDE         |
+        // | Exclude by test:    |    EXCLUDE           |   EXCLUDE         |   EXCLUDE         |
         return isExcludedByAnnotation(testClass) || isExcludedByAnnotation(testMethod);
     }
 
