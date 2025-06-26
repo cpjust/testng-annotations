@@ -4,11 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.github.cpjust</groupId>
+    <groupId>io.github.cpjust</groupId>
     <artifactId>testng-annotations</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>testng-annotations</name>
     <description>Contains some extra annotations that are useful when running tests in TestNG.</description>
+    <url>https://github.com/cpjust/testng-annotations</url>
     <inceptionYear>2025</inceptionYear>
 
     <licenses>
@@ -21,6 +22,9 @@
     <developers>
         <developer>
             <name>Chris Just</name>
+            <email>thecpjust@gmail.com</email>
+            <organization>None</organization>
+            <organizationUrl>https://github.com/cpjust</organizationUrl>
         </developer>
     </developers>
 
@@ -34,8 +38,12 @@
         <org.testng.version>7.11.0</org.testng.version>
         <org.junit.jupiter.version>5.12.2</org.junit.jupiter.version>
         <org.hamcrest.version>3.0</org.hamcrest.version>
-        <org.apache.maven.plugins.version>3.5.3</org.apache.maven.plugins.version>
+        <org.apache.maven.plugins.maven-surefire-plugin.version>3.5.3</org.apache.maven.plugins.maven-surefire-plugin.version>
+        <org.apache.maven.plugins.maven-compiler-plugin.version>3.14.0</org.apache.maven.plugins.maven-compiler-plugin.version>
         <org.apache.maven.plugins.maven-javadoc-plugin.version>3.11.2</org.apache.maven.plugins.maven-javadoc-plugin.version>
+        <org.apache.maven.plugins.maven-source-plugin.version>3.3.1</org.apache.maven.plugins.maven-source-plugin.version>
+        <org.sonatype.central.central-publishing-maven-plugin.version>0.8.0</org.sonatype.central.central-publishing-maven-plugin.version>
+        <org.apache.maven.plugins.maven-gpg-plugin.version>3.2.7</org.apache.maven.plugins.maven-gpg-plugin.version>
     </properties>
 
     <dependencies>
@@ -94,6 +102,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>${org.apache.maven.plugins.maven-compiler-plugin.version}</version>
                 <configuration>
                     <annotationProcessorPaths>
                         <path>
@@ -108,12 +117,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${org.apache.maven.plugins.version}</version>
+                <version>${org.apache.maven.plugins.maven-surefire-plugin.version}</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.apache.maven.surefire</groupId>
                         <artifactId>surefire-testng</artifactId>
-                        <version>${org.apache.maven.plugins.version}</version>
+                        <version>${org.apache.maven.plugins.maven-surefire-plugin.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -132,6 +141,76 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${org.apache.maven.plugins.maven-source-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Required to publish artifact -->
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>${org.sonatype.central.central-publishing-maven-plugin.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>sign-artifacts</id>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${org.apache.maven.plugins.maven-gpg-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- Define gpg.keyname in the settings.xml file. -->
+                                    <keyname>${gpg.keyname}</keyname>
+                                    <passphraseServerId>${gpg.keyname}</passphraseServerId>
+                                    <passphrase>${gpg.passphrase}</passphrase>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <scm>
+        <connection>scm:git:git://github.com/cpjust/testng-annotations.git</connection>
+        <developerConnection>scm:git:ssh://github.com:cpjust/testng-annotations.git</developerConnection>
+        <url>http://github.com/cpjust/testng-annotations/tree/master</url>
+    </scm>
 </project>

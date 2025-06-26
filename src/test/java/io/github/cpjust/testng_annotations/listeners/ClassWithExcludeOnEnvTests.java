@@ -1,7 +1,7 @@
-package com.github.cpjust.testng_annotations.listeners;
+package io.github.cpjust.testng_annotations.listeners;
 
-import com.github.cpjust.testng_annotations.TestBase;
-import com.github.cpjust.testng_annotations.annotations.ExcludeOnEnv;
+import io.github.cpjust.testng_annotations.TestBase;
+import io.github.cpjust.testng_annotations.annotations.ExcludeOnEnv;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.DataProvider;

@@ -1,4 +1,4 @@
-package com.github.cpjust.testng_annotations;
+package io.github.cpjust.testng_annotations;
 
 import lombok.extern.slf4j.Slf4j;
 import org.testng.annotations.BeforeSuite;

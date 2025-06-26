@@ -1,6 +1,6 @@
-package com.github.cpjust.testng_annotations.listeners;
+package io.github.cpjust.testng_annotations.listeners;
 
-import com.github.cpjust.testng_annotations.annotations.IncludeOnEnv;
+import io.github.cpjust.testng_annotations.annotations.IncludeOnEnv;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
