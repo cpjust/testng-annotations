@@ -16,7 +16,7 @@ import static org.hamcrest.Matchers.containsString;
 
 @Slf4j
 @Listeners(value = IncludeOnEnvListener.class)
-public class IncludeOnEnvTests extends TestBase {
+public class IncludeOnEnvIT extends TestBase {
     private static final List<String> testsRun = new ArrayList<>();
 
     @Test
@@ -28,6 +28,7 @@ public class IncludeOnEnvTests extends TestBase {
     @Test
     public void testWithNonIncludedEnv_isNotRun() {
         testsRun.add(getCurrentMethodName());
+        failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = "matchEnv")
@@ -36,10 +37,17 @@ public class IncludeOnEnvTests extends TestBase {
         testsRun.add(getCurrentMethodName());
     }
 
+    @IncludeOnEnv(value = "MATCHeNV")
+    @Test
+    public void testWithIncludedEnv_differentCase_isRun() {
+        testsRun.add(getCurrentMethodName());
+    }
+
     @IncludeOnEnv(value = {"unmatchEnvironment"}, propertyName = "environment")
     @Test
     public void testWithNonIncludedEnv_customPropertyName_isNotRun() {
         testsRun.add(getCurrentMethodName());
+        failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = {"matchEnvironment"}, propertyName = "environment")
@@ -58,6 +66,7 @@ public class IncludeOnEnvTests extends TestBase {
     @Test(dataProvider = "testData")
     public void testWithNonIncludedEnv_isNotRun(String foo) {
         testsRun.add(getCurrentMethodName(foo));
+        failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = {"matchEnv"})
@@ -67,22 +76,43 @@ public class IncludeOnEnvTests extends TestBase {
     }
 
     @Test(priority = 2)
-    public void verifyTests() {
-        log.debug("In verifyTests() checking expected tests against these tests that were run: {}", testsRun);
-        List<String> expectedIncludedTests = List.of("testWithIncludedEnv_isRun()", "testWithIncludedEnv_isRun(one)", "testWithIncludedEnv_isRun(two)",
-                "testWithIncludedEnv_customPropertyName_isRun()", "testWithNoIncludeOnEnv_isRun()",
-                "testWithIncludedAndNonIncludedEnvs_isRun()");
-        List<String> expectedExcludedTests = List.of("testWithNonIncludedEnv_isNotRun()", "testWithNonIncludedEnv_isNotRun(one)", "testWithNonIncludedEnv_isNotRun(two)",
-                "testWithNonIncludedEnv_customPropertyName_isNotRun()");
+    public void verifyIncludedTests() {
+        log.debug("In verifyIncludedTests() checking expected tests against these tests that were run: {}", testsRun);
+        List<String> expectedIncludedTests = List.of(
+                "testWithIncludedEnv_isRun()",
+                "testWithIncludedEnv_differentCase_isRun()",
+                "testWithIncludedEnv_isRun(one)",
+                "testWithIncludedEnv_isRun(two)",
+                "testWithIncludedEnv_customPropertyName_isRun()",
+                "testWithNoIncludeOnEnv_isRun()",
+                "testWithIncludedAndNonIncludedEnvs_isRun()"
+        );
 
         assertThat("Wrong number of tests run!", testsRun, hasSize(expectedIncludedTests.size()));
-
-        expectedExcludedTests.forEach(excludedTest -> assertThat("Excluded test was run!", testsRun, not(hasItem(excludedTest))));
-        expectedIncludedTests.forEach(includedTest -> assertThat("Included test was not run!", testsRun, hasItem(includedTest)));
+        expectedIncludedTests.forEach(includedTest ->
+                assertThat("Included test was not run!", testsRun, hasItem(includedTest)));
 
         // Added extra checks in case test refactoring break the above asserts.
-        testsRun.forEach(test -> assertThat("Excluded test was run!", test, not(containsString("_isNotRun("))));
-        testsRun.forEach(test -> assertThat("Included test was not run!", test, containsString("_isRun(")));
+        testsRun.forEach(test ->
+                assertThat("Included test was not run!", test, containsString("_isRun(")));
+    }
+
+    @Test(priority = 2)
+    public void verifyExcludedTests() {
+        log.debug("In verifyExcludedTests() checking expected tests against these tests that were run: {}", testsRun);
+        List<String> expectedExcludedTests = List.of(
+                "testWithNonIncludedEnv_isNotRun()",
+                "testWithNonIncludedEnv_isNotRun(one)",
+                "testWithNonIncludedEnv_isNotRun(two)",
+                "testWithNonIncludedEnv_customPropertyName_isNotRun()"
+        );
+
+        expectedExcludedTests.forEach(excludedTest ->
+                assertThat("Excluded test was run!", testsRun, not(hasItem(excludedTest))));
+
+        // Added extra checks in case test refactoring break the above asserts.
+        testsRun.forEach(test ->
+                assertThat("Excluded test was run!", test, not(containsString("_isNotRun("))));
     }
 
     @DataProvider

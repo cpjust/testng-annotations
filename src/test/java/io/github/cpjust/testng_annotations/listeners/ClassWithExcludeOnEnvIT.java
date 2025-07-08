@@ -17,7 +17,7 @@ import static org.hamcrest.Matchers.containsString;
 
 @Slf4j
 @ExcludeOnEnv(value = {"matchEnv"})
-public class ClassWithExcludeOnEnvTests extends TestBase {
+public class ClassWithExcludeOnEnvIT extends TestBase {
     private static final List<String> classWithExcludeOnEnvTestsRun = new ArrayList<>();
 
     @AfterSuite

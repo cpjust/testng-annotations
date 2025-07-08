@@ -11,7 +11,6 @@ import org.testng.ITestContext;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -22,7 +21,7 @@ import java.util.Objects;
  */
 @Slf4j
 @NoArgsConstructor
-public class ExcludeOnEnvListener implements IMethodInterceptor {
+public class ExcludeOnEnvListener extends EnvListenerBase implements IMethodInterceptor {
     /**
      * Intercepts the list of tests that TestNG intends to run and allows us to modify that list by removing any tests
      * that are annotated with <code>@ExcludeOnEnv</code> which has an environment that matches the current environment.
@@ -84,10 +83,6 @@ public class ExcludeOnEnvListener implements IMethodInterceptor {
         }
 
         ExcludeOnEnv excludeOnEnv = element.getAnnotation(ExcludeOnEnv.class);
-        String[] excludedEnvs = excludeOnEnv.value();
-        String propertyName = excludeOnEnv.propertyName();
-        String currentEnv = System.getProperty(propertyName, null);
-
-        return Arrays.asList(excludedEnvs).contains(currentEnv);
+        return anyEnvMatches(excludeOnEnv.propertyName(), excludeOnEnv.value());
     }
 }

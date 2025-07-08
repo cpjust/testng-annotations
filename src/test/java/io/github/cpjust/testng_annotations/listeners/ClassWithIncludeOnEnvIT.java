@@ -18,7 +18,7 @@ import static org.hamcrest.Matchers.containsString;
 @Slf4j
 @IncludeOnEnv(value = {"unmatchEnv"})
 @Listeners(value = IncludeOnEnvListener.class)
-public class ClassWithIncludeOnEnvTests extends TestBase {
+public class ClassWithIncludeOnEnvIT extends TestBase {
     private static final List<String> classWithIncludeOnEnvTestsRun = new ArrayList<>();
 
     @AfterSuite

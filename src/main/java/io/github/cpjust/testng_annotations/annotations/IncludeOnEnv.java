@@ -12,9 +12,10 @@ import java.lang.annotation.Target;
  * <br/>
  * The following attributes can be used with this annotation:
  * <ul>
- *     <li>value: (required) A list of environment names where the test should be included.</li>
+ *     <li>value: (required) A list of environment names where the test should be included (case-insensitive).</li>
  *     <li>propertyName: (optional) The name of the Java property to read to get the name of the current environment.  Defaults to "env".</li>
  * </ul>
+ * NOTE: The environment names are compared case-insensitively.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.TYPE})
@@ -22,6 +23,7 @@ public @interface IncludeOnEnv {
     /**
      * The environment names to include the test on.
      * You can pass a single environment with a string (ex. "prod") or multiple environments in braces (ex. {"Stage", "Prod"}).
+     * Cannot be null or blank, otherwise an IllegalArgumentException is thrown.
      *
      * @return An array of environment names.
      */
@@ -30,6 +32,7 @@ public @interface IncludeOnEnv {
     /**
      * The Java property name from which to read the current environment where the tests are being executed
      * (ex. "dev", "stage", "Prod"...).
+     * Cannot be null or blank, otherwise an IllegalArgumentException is thrown.
      *
      * @return The property name to read.  Defaults to "env".
      */

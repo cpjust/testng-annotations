@@ -30,3 +30,4 @@ test-output/
 # IntelliJ
 .idea/
 *.iml
+.aider*

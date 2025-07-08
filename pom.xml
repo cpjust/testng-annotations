@@ -37,8 +37,10 @@
         <org.apache.logging.log4j.version>2.24.3</org.apache.logging.log4j.version>
         <org.testng.version>7.11.0</org.testng.version>
         <org.junit.jupiter.version>5.12.2</org.junit.jupiter.version>
+        <org.mockito.mockito-core.version>5.18.0</org.mockito.mockito-core.version>
         <org.hamcrest.version>3.0</org.hamcrest.version>
         <org.apache.maven.plugins.maven-surefire-plugin.version>3.5.3</org.apache.maven.plugins.maven-surefire-plugin.version>
+        <org.apache.maven.plugins.maven-failsafe-plugin.version>3.5.3</org.apache.maven.plugins.maven-failsafe-plugin.version>
         <org.apache.maven.plugins.maven-compiler-plugin.version>3.14.0</org.apache.maven.plugins.maven-compiler-plugin.version>
         <org.apache.maven.plugins.maven-javadoc-plugin.version>3.11.2</org.apache.maven.plugins.maven-javadoc-plugin.version>
         <org.apache.maven.plugins.maven-source-plugin.version>3.3.1</org.apache.maven.plugins.maven-source-plugin.version>
@@ -90,6 +92,19 @@
         </dependency>
 
         <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${org.mockito.mockito-core.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${org.mockito.mockito-core.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest</artifactId>
             <version>${org.hamcrest.version}</version>
@@ -118,7 +133,42 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${org.apache.maven.plugins.maven-surefire-plugin.version}</version>
+                <configuration>
+                    <!-- Only run *Test.java here -->
+                    <includes>
+                        <include>**/*Test.java</include>
+                    </includes>
+                </configuration>
                 <dependencies>
+                    <!-- Use JUnit 5 for surefire -->
+                    <dependency>
+                        <groupId>org.apache.maven.surefire</groupId>
+                        <artifactId>surefire-junit-platform</artifactId>
+                        <version>${org.apache.maven.plugins.maven-surefire-plugin.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${org.apache.maven.plugins.maven-failsafe-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!-- Only run *IT.java here -->
+                    <includes>
+                        <include>**/*IT.java</include>
+                    </includes>
+                </configuration>
+                <dependencies>
+                    <!-- Use TestNG provider for failsafe -->
                     <dependency>
                         <groupId>org.apache.maven.surefire</groupId>
                         <artifactId>surefire-testng</artifactId>

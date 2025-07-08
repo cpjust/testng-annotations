@@ -1,6 +1,7 @@
 package io.github.cpjust.testng_annotations;
 
 import lombok.extern.slf4j.Slf4j;
+import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 
 import java.util.Arrays;
@@ -13,8 +14,14 @@ import static org.hamcrest.Matchers.*;
 public class TestBase {
     @BeforeSuite
     public void beforeSuite() {
-        System.setProperty("env", "matchEnv");
-        System.setProperty("environment", "matchEnvironment");
+        // Allow test environments to be overridden via system properties
+        String env = System.getProperty("test.env", "matchEnv");
+        String environment = System.getProperty("test.environment", "matchEnvironment");
+
+        System.setProperty("env", env);
+        System.setProperty("environment", environment);
+
+        log.info("Test environments configured - env: {}, environment: {}", env, environment);
     }
 
     /**
@@ -27,5 +34,12 @@ public class TestBase {
         assertThat("Not enough elements in stack trace!", stackTraceElements.length, greaterThanOrEqualTo(2));
         String paramString = Arrays.stream(params).map(Object::toString).collect(Collectors.joining(", "));
         return stackTraceElements[2].getMethodName() + String.format("(%s)", paramString);
+    }
+
+    /**
+     * Fails a test that shouldn't run.
+     */
+    protected static void failTestThatShouldNotRun() {
+        Assert.fail("This test shouldn't be run!");
     }
 }

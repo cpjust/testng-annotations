@@ -9,7 +9,6 @@ import org.testng.IMethodInterceptor;
 import org.testng.ITestContext;
 
 import java.lang.reflect.AnnotatedElement;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,7 +19,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @NoArgsConstructor
-public class IncludeOnEnvListener implements IMethodInterceptor {
+public class IncludeOnEnvListener extends EnvListenerBase implements IMethodInterceptor {
     /**
      * Intercepts the list of tests that TestNG intends to run and allows us to modify that list by removing any tests
      * that are annotated with <code>@IncludeOnEnv</code> which has an environment that doesn't match the current environment.
@@ -83,8 +82,6 @@ public class IncludeOnEnvListener implements IMethodInterceptor {
         }
 
         IncludeOnEnv includeOnEnv = element.getAnnotation(IncludeOnEnv.class);
-        String env = System.getProperty(includeOnEnv.propertyName(), null);
-        return Arrays.asList(includeOnEnv.value())
-                .contains(env);
+        return anyEnvMatches(includeOnEnv.propertyName(), includeOnEnv.value());
     }
 }

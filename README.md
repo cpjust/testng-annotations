@@ -7,12 +7,69 @@ The testng-annotations project contains some extra annotations that are useful w
   - NOTE: TestNG upgraded to Java 11 starting from 7.6.0.
   - If you need to port this project to Java 8, you won't be able to go beyond TestNG 7.5.
 
+## Quick Start
+
+1. Add dependency:
+```xml
+<dependency>
+    <groupId>io.github.cpjust</groupId>
+    <artifactId>testng-annotations</artifactId>
+    <version>1.0.0</version>
+    <scope>test</scope>
+</dependency>
+```
+
+2. Register listeners (pick one):
+- Add to test class:
+```java
+@Listeners({IncludeOnEnvListener.class, ExcludeOnEnvListener.class})
+```
+- OR add to `src/test/resources/META-INF/services/org.testng.ITestNGListener`:
+```
+io.github.cpjust.testng_annotations.listeners.IncludeOnEnvListener
+io.github.cpjust.testng_annotations.listeners.ExcludeOnEnvListener
+```
+
+3. Use annotations in tests:
+```java
+// Skip in production
+@ExcludeOnEnv("prod")
+@Test
+public void productionSafeTest() {
+    // Won't run when -Denv=prod
+}
+
+// Only run in dev/qa
+@IncludeOnEnv(value = {"dev", "qa"}, propertyName = "environment")
+@Test
+public void nonProductionTest() {
+    // Only runs with -Denvironment=dev or -Denvironment=qa
+}
+
+// Complex example with inheritance
+@ExcludeOnEnv("ci")
+public class BaseTest {
+    // Class-wide exclusion
+}
+
+public class MyTests extends BaseTest {
+    @IncludeOnEnv("staging")
+    @Test // Combines class and method rules
+    public void stagingOnlyTest() {
+        // Runs if:
+        // - Not in CI (-Denv=ci)
+        // - In staging (-Denv=staging)
+    }
+}
+```
+
 ## Annotations:
 
 ### @ExcludeOnEnv
 This annotation will exclude tests if the current environment (as defined by a Java property) matches one of the
 environments to be excluded.  This annotation will not just mark a test as skipped, it will not even attempt to run the
 test and the test will not appear in the list of tests that were run if the test was excluded.
+NOTE: The environment names are compared case-insensitively.
 
 Ex. If a test is annotated with `@ExcludeOnEnv(value = {"Stage", "Prod"}, propertyName = "environment")` and you run
 with the `-Denvironment=Prod` option, the test will be excluded.  If you omit the `propertyName` attribute, it will use
@@ -29,7 +86,8 @@ Tests should be excluded using the following rules:
 ### @IncludeOnEnv
 This annotation will include tests if the current environment (as defined by a Java property) matches one of the
 environments to be included.  This annotation will not just mark a test as skipped, it will not even attempt to run the
-test and the test will not appear in the list of tests that were run if the test was excluded.
+test and the test will not appear in the list of tests that were run if the test was not included.
+NOTE: The environment names are compared case-insensitively.
 
 Ex. If a test is annotated with `@IncludeOnEnv(value = {"Stage", "Prod"}, propertyName = "environment")` and you run
 with the `-Denvironment=Prod` option, the test will be included.  If you omit the `propertyName` attribute, it will use
@@ -94,3 +152,44 @@ NOTE: If the signing fails with a "Bad passphrase" error, and you have the right
 `MAVEN_GPG_PASSPHRASE` environment variable to your passphrase value.  Ex. `export MAVEN_GPG_PASSPHRASE="your passphrase"`
 
 Deploy with `mvn clean deploy -Psign-artifacts`
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Listeners not working | Verify registration via either:<br>- `@Listeners` annotation on test class, OR<br>- `META-INF/services/org.testng.ITestNGListener` file |
+| Environment not detected | Set properties:<br>- Via command line: `-Denv=value`<br>- In `@BeforeSuite` method<br>Note: `@BeforeClass` is too late! |
+| Unexpected test execution | Check annotation precedence rules above<br>Verify property name matches in annotations |
+| IllegalArgumentException | Verify you aren't passing a blank or empty string as tha `value` or `propertyName` annotation properties |
+| Signing failures | 1. Verify GPG is installed<br>2. Set `MAVEN_GPG_PASSPHRASE` env var<br>3. Check `settings.xml` config |
+
+## Best Practices
+
+1. **Consistent Environments**:
+  - Standardize on a property name (e.g. always use "env")
+  - Document expected values (dev, qa, prod)
+
+2. **Annotation Strategy**:
+  - Use class-level for broad rules
+  - Method-level for exceptions
+  - Avoid mixing @Include and @Exclude
+
+3. **Debugging**:
+```java
+@BeforeSuite
+public void logEnvironment() {
+    System.getProperties().forEach((k,v) ->
+        log.info("Prop: {}={}", k, v));
+}
+```
+
+4. **CI Integration**:
+```yaml
+# Sample GitHub Actions
+jobs:
+  test:
+    env:
+      ENV: ci
+    steps:
+      - run: mvn test -Denv=$ENV
+```
