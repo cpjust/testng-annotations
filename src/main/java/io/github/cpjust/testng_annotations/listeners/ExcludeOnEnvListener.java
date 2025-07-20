@@ -56,6 +56,9 @@ public class ExcludeOnEnvListener extends EnvListenerBase implements IMethodInte
 
     /**
      * Determines if a test method or test class should be excluded based on its annotations.
+     * Exclusion rules:
+     * 1. If either class or method is excluded -> exclude test
+     * 2. Otherwise -> include test
      *
      * @param testClass  The test class to check.
      * @param testMethod The test method to check.
@@ -68,7 +71,17 @@ public class ExcludeOnEnvListener extends EnvListenerBase implements IMethodInte
         // | No test annotation: |    INCLUDE           |   INCLUDE         |   EXCLUDE         |
         // | Include by test:    |    INCLUDE           |   INCLUDE         |   EXCLUDE         |
         // | Exclude by test:    |    EXCLUDE           |   EXCLUDE         |   EXCLUDE         |
-        return isExcludedByAnnotation(testClass) || isExcludedByAnnotation(testMethod);
+
+        boolean exclude = isExcludedByAnnotation(testClass) || isExcludedByAnnotation(testMethod);
+
+        if (log.isDebugEnabled()) {
+            log.debug("Test {}.{} should {}be excluded",
+                    testClass.getSimpleName(),
+                    testMethod.getName(),
+                    exclude ? "" : "NOT ");
+        }
+
+        return exclude;
     }
 
     /**
@@ -83,6 +96,6 @@ public class ExcludeOnEnvListener extends EnvListenerBase implements IMethodInte
         }
 
         ExcludeOnEnv excludeOnEnv = element.getAnnotation(ExcludeOnEnv.class);
-        return anyEnvMatches(excludeOnEnv.propertyName(), excludeOnEnv.value());
+        return anyEnvMatches(excludeOnEnv.propertyName(), excludeOnEnv.value(), "ExcludeOnEnv");
     }
 }

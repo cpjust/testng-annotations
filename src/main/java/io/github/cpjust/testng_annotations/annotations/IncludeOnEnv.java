@@ -16,6 +16,24 @@ import java.lang.annotation.Target;
  *     <li>propertyName: (optional) The name of the Java property to read to get the name of the current environment.  Defaults to "env".</li>
  * </ul>
  * NOTE: The environment names are compared case-insensitively.
+ * <br/><br/>
+ * Tests should be included using the following rules:
+ * <br/>
+ * <table>
+ *     <caption>Inclusion rules for IncludeOnEnv</caption>
+ *     <tr>
+ *         <th></th><th>No class annotation:</th><th>Include by class:</th><th>Exclude by class:</th>
+ *     </tr>
+ *     <tr>
+ *         <th scope="row">No test annotation:</th><td>INCLUDE</td><td>INCLUDE</td><td>EXCLUDE</td>
+ *     </tr>
+ *     <tr>
+ *         <th scope="row">Include by test:</th><td>INCLUDE</td><td>INCLUDE</td><td>INCLUDE</td>
+ *     </tr>
+ *     <tr>
+ *         <th scope="row">Exclude by test:</th><td>EXCLUDE</td><td>EXCLUDE</td><td>EXCLUDE</td>
+ *     </tr>
+ * </table>
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.TYPE})
@@ -23,7 +41,7 @@ public @interface IncludeOnEnv {
     /**
      * The environment names to include the test on.
      * You can pass a single environment with a string (ex. "prod") or multiple environments in braces (ex. {"Stage", "Prod"}).
-     * Cannot be null or blank, otherwise an IllegalArgumentException is thrown.
+     * Cannot be null, blank or an empty array, otherwise an IllegalArgumentException is thrown.
      *
      * @return An array of environment names.
      */

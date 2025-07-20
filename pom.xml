@@ -134,6 +134,11 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${org.apache.maven.plugins.maven-surefire-plugin.version}</version>
                 <configuration>
+                    <!-- argLine needed to remove error message in compile output.  See: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3 -->
+                    <argLine>
+                        -javaagent:${settings.localRepository}/org/mockito/mockito-core/${org.mockito.mockito-core.version}/mockito-core-${org.mockito.mockito-core.version}.jar
+                    </argLine>
+
                     <!-- Only run *Test.java here -->
                     <includes>
                         <include>**/*Test.java</include>

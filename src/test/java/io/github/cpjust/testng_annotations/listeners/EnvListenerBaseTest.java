@@ -20,6 +20,8 @@ import static org.mockito.Mockito.when;
 // not run any tests.
 @ExtendWith(MockitoExtension.class)
 class EnvListenerBaseTest {
+    private static final String ANNOTATION_NAME = "Foo";
+
     @Mock
     Properties mockProperties;
 
@@ -37,18 +39,18 @@ class EnvListenerBaseTest {
     void anyEnvMatches_blankPropertyName_throwsException(String blankPropertyName) {
         IllegalArgumentException ex = assertThrows(
                 IllegalArgumentException.class,
-                () -> listener.anyEnvMatches(blankPropertyName, new String[] { "env" }),
+                () -> listener.anyEnvMatches(blankPropertyName, new String[] { "env" }, ANNOTATION_NAME),
                 "anyEnvMatches() should throw an IllegalArgumentException for a blank propertyName!"
         );
         assertThat("anyEnvMatches() threw the wrong assert message!", ex.getMessage(),
-                equalTo("The 'propertyName' value cannot be blank!"));
+                equalTo(String.format("The 'propertyName' parameter of the %s annotation cannot be blank!", ANNOTATION_NAME)));
     }
 
     @Test
     @DisplayName("null currentEnv (property not set) returns false")
     void anyEnvMatches_missingProperty_returnsFalse() {
         when(mockProperties.getProperty("foo")).thenReturn(null);
-        boolean result = listener.anyEnvMatches("foo", new String[] { "anything" });
+        boolean result = listener.anyEnvMatches("foo", new String[] { "anything" }, ANNOTATION_NAME);
         assertFalse(result, "if system property is not set, should return false");
     }
 
@@ -59,18 +61,30 @@ class EnvListenerBaseTest {
         when(mockProperties.getProperty("foo")).thenReturn("bar");
         IllegalArgumentException ex = assertThrows(
                 IllegalArgumentException.class,
-                () -> listener.anyEnvMatches("foo", new String[] { blankEnv, "bar" }),
+                () -> listener.anyEnvMatches("foo", new String[] { blankEnv, "bar" }, ANNOTATION_NAME),
                 "anyEnvMatches() should throw an IllegalArgumentException for blank env values!"
         );
         assertThat("anyEnvMatches() threw the wrong assert message!", ex.getMessage(),
-                equalTo("The 'value' cannot contain blank environments!"));
+                equalTo(String.format("The 'value' parameter of the %s annotation cannot contain blank environments!", ANNOTATION_NAME)));
+    }
+
+    @Test
+    @DisplayName("empty array of envs should throw IllegalArgumentException")
+    void anyEnvMatches_emptyEnvValueArray_throwsException() {
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> listener.anyEnvMatches("foo", new String[] {}, ANNOTATION_NAME),
+                "anyEnvMatches() should throw an IllegalArgumentException for an empty array of env values!"
+        );
+        assertThat("anyEnvMatches() threw the wrong assert message!", ex.getMessage(),
+                equalTo(String.format("The 'value' parameter of the %s annotation cannot be an empty array!", ANNOTATION_NAME)));
     }
 
     @Test
     @DisplayName("exact match in envs returns true")
     void anyEnvMatches_exactMatch_returnsTrue() {
         when(mockProperties.getProperty("envKey")).thenReturn("PROD");
-        boolean matched = listener.anyEnvMatches("envKey", new String[] { "PROD", "TEST" });
+        boolean matched = listener.anyEnvMatches("envKey", new String[] { "PROD", "TEST" }, ANNOTATION_NAME);
         assertTrue(matched, "anyEnvMatches() should return true if an env is matched!");
     }
 
@@ -78,7 +92,7 @@ class EnvListenerBaseTest {
     @DisplayName("case-insensitive and trimmed match returns true")
     void anyEnvMatches_trimmedCaseInsensitiveMatch_returnsTrue() {
         when(mockProperties.getProperty("envKey")).thenReturn("  pRoD  ");
-        boolean matched = listener.anyEnvMatches("envKey", new String[] { " prod ", "staging" });
+        boolean matched = listener.anyEnvMatches("envKey", new String[] { " prod ", "staging" }, ANNOTATION_NAME);
         assertTrue(matched, "anyEnvMatches() should return true if an env is matched, even if the case is different!");
     }
 
@@ -86,7 +100,7 @@ class EnvListenerBaseTest {
     @DisplayName("no match in envs returns false")
     void anyEnvMatches_noMatch_returnsFalse() {
         when(mockProperties.getProperty("envKey")).thenReturn("development");
-        boolean matched = listener.anyEnvMatches("envKey", new String[] { "qa", "prod" });
+        boolean matched = listener.anyEnvMatches("envKey", new String[] { "qa", "prod" }, ANNOTATION_NAME);
         assertFalse(matched, "anyEnvMatches() should return false if no env is matched!");
     }
 }

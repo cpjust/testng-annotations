@@ -37,11 +37,17 @@ public class IncludeOnEnvListener extends EnvListenerBase implements IMethodInte
 
     /**
      * Determines if a test method or test class should be included based on its annotations.
+     * If class has `@IncludeOnEnv` but doesn't match current env -> exclude unless test method specifically matches
+     * Exclusion rules:
+     * 1. If method is excluded -> exclude test
+     * 2. If method is included -> include test
+     * 3. If method has no annotation and class is excluded -> exclude test
+     * 4. Otherwise -> include test
      *
      * @param methodInstance The test method to check.
      * @return True if the class or method should be included, otherwise false.
      */
-    private boolean shouldIncludeTest(IMethodInstance methodInstance) {
+    private boolean shouldIncludeTest(@NonNull IMethodInstance methodInstance) {
         AnnotatedElement testClass = methodInstance.getMethod().getRealClass();
         AnnotatedElement testMethod = methodInstance.getMethod().getConstructorOrMethod().getMethod();
 
@@ -62,11 +68,16 @@ public class IncludeOnEnvListener extends EnvListenerBase implements IMethodInte
             shouldInclude = (hasAnnotationOnTest && shouldIncludeMethod);
         }
 
-        log.debug("*** hasAnnotationOnClass: {}, hasAnnotationOnTest: {}, shouldIncludeClass: {}, shouldIncludeMethod: {}",
-                hasAnnotationOnClass, hasAnnotationOnTest, shouldIncludeClass, shouldIncludeMethod);
+        if (log.isDebugEnabled()) {
+            log.debug("*** hasAnnotationOnClass: {}, hasAnnotationOnTest: {}, shouldIncludeClass: {}, shouldIncludeMethod: {}",
+                    hasAnnotationOnClass, hasAnnotationOnTest, shouldIncludeClass, shouldIncludeMethod);
 
-        log.debug("intercept() is {}including method: {}", shouldInclude ? "" : "NOT ",
-                methodInstance.getMethod().getConstructorOrMethod().getMethod().getName());
+            log.debug("Test {}.{} should {}be included",
+                    methodInstance.getMethod().getConstructorOrMethod().getDeclaringClass().getSimpleName(),
+                    methodInstance.getMethod().getConstructorOrMethod().getMethod().getName(),
+                    shouldInclude ? "" : "NOT ");
+        }
+
         return shouldInclude;
     }
 
@@ -82,6 +93,6 @@ public class IncludeOnEnvListener extends EnvListenerBase implements IMethodInte
         }
 
         IncludeOnEnv includeOnEnv = element.getAnnotation(IncludeOnEnv.class);
-        return anyEnvMatches(includeOnEnv.propertyName(), includeOnEnv.value());
+        return anyEnvMatches(includeOnEnv.propertyName(), includeOnEnv.value(), "IncludeOnEnv");
     }
 }
