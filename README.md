@@ -14,7 +14,7 @@ The testng-annotations project contains some extra annotations that are useful w
 <dependency>
     <groupId>io.github.cpjust</groupId>
     <artifactId>testng-annotations</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -28,6 +28,7 @@ The testng-annotations project contains some extra annotations that are useful w
 ```
 io.github.cpjust.testng_annotations.listeners.IncludeOnEnvListener
 io.github.cpjust.testng_annotations.listeners.ExcludeOnEnvListener
+io.github.cpjust.testng_annotations.listeners.ValueSourceListener
 ```
 
 3. Use annotations in tests:
@@ -68,9 +69,22 @@ public class MyTests extends BaseTest {
         // - In staging (-Denv=staging)
     }
 }
+
+// Using @ValueSource for parameterized tests
+@Test
+@ValueSource(strings = {"test1", "test2"})
+public void testWithStrings(String value) {
+    // Test runs twice, once with "test1" and once with "test2"
+}
+
+@Test
+@ValueSource(ints = {1, 2, 3})
+public void testWithInts(int value) {
+    // Test runs three times with values 1, 2, and 3
+}
 ```
 
-## Annotations:
+## Annotations
 
 ### @ExcludeOnEnv
 This annotation will exclude tests if the current environment (as defined by a Java property) matches one of the
@@ -122,6 +136,97 @@ Tests should be included using the following rules:
 | Include by test:    |    INCLUDE           |   INCLUDE         |   INCLUDE         |
 | Exclude by test:    |    EXCLUDE           |   EXCLUDE         |   EXCLUDE         |
 
+### @ValueSource
+Provides a simple way to parameterize tests with literal values. Similar to JUnit's ValueSource, this annotation runs the test method once for each provided value.
+This annotation is less powerful than TestNG's native DataProvider, but is easier to use for simple cases, and keeps the test data with the test method.
+
+Supported value types:
+- `strings()`: String values
+- `chars()`: Char values
+- `booleans()`: Boolean values
+- `bytes()`: Byte values
+- `shorts()`: Short values
+- `ints()`: Integer values
+- `longs()`: Long values
+- `floats()`: Float values
+- `doubles()`: Double values
+- `classes()`: Class values
+
+**Requirements:**
+- Test method must have exactly one parameter.
+- Parameter type must match the value type being provided.
+- At least one value must be provided.
+
+**Example:**
+```java
+@Test
+@ValueSource(strings = {"hello", "world"})
+public void testStrings(String value) {
+    assertNotNull(value);
+}
+
+@Test
+@ValueSource(ints = {1, 2, 3})
+public void testInts(int value) {
+    assertTrue(value > 0);
+}
+
+@Test
+@ValueSource(bytes = {1, 2})
+public void testBytes(byte value) {
+    // ...
+}
+
+@Test
+@ValueSource(chars = {'a', 'b'})
+public void testChars(char value) {
+    // ...
+}
+
+@Test
+@ValueSource(shorts = {10, 20})
+public void testShorts(short value) {
+    // ...
+}
+
+@Test
+@ValueSource(floats = {1.5f, 2.5f})
+public void testFloats(float value) {
+    // ...
+}
+
+@Test
+@ValueSource(classes = {String.class, Integer.class})
+public void testClasses(Class<?> value) {
+    // ...
+}
+```
+
+#### Listener: ValueSourceListener
+
+This is the listener for TestNG tests that are annotated with `@ValueSource`.
+
+**Registration options: (pick one)**
+- Add to `src/test/resources/META-INF/services/org.testng.ITestNGListener` (RECOMMENDED):
+```
+io.github.cpjust.testng_annotations.listeners.ValueSourceListener
+```
+- or register it in the testng.xml file.  Ex.
+```xml
+<listeners>
+    <listener class-name="io.github.cpjust.testng_annotations.listeners.ValueSourceListener"/>
+</listeners>
+```
+
+**Notes:**
+- If you do not register the listener globally, you must specify the data provider in your @Test annotation:
+  ```java
+  @Test(dataProvider = "valueSourceProvider", dataProviderClass = ValueSourceListener.class)
+  @ValueSource(strings = {"foo", "bar"})
+  public void testWithStrings(String value) { ... }
+  ```
+- If registered globally, you can simply use `@Test` and `@ValueSource` together.
+
 ## Listeners:
 
 ### ExcludeOnEnvListener
@@ -135,6 +240,17 @@ This is the listener for TestNG tests that are annotated with `@IncludeOnEnv`.
 To register this listener, either define it in the `src/test/resources/META-INF/services/org.testng.ITestNGListener`
 file (by adding `io.github.cpjust.testng_annotations.listeners.IncludeOnEnvListener` to the file)
 or add the `@Listeners({IncludeOnEnvListener.class})` annotation to the test class.
+
+### ValueSourceListener
+This is the listener for TestNG tests that are annotated with `@ValueSource`.
+To register this listener, either define it in the `src/test/resources/META-INF/services/org.testng.ITestNGListener`
+file (by adding `io.github.cpjust.testng_annotations.listeners.ValueSourceListener` to the file)
+or add the listener to the testng.xml file.
+
+**Usage notes:**
+- The listener automatically provides the correct data provider for methods annotated with `@ValueSource`.
+- If not registered globally, you must specify `dataProvider = "valueSourceProvider", dataProviderClass = ValueSourceListener.class` in your `@Test` annotation.
+- You cannot register this listener in the `@Listeners` annotation.
 
 ## Notes on annotation implementations:
 After implementing the IAnnotationTransformer & IMethodInterceptor interfaces, getting TestNG to actually run them was tricky.
@@ -196,6 +312,7 @@ Deploy with `mvn clean deploy -Psign-artifacts`
   - Use class-level for broad rules
   - Method-level for exceptions
   - Avoid mixing @Include and @Exclude
+  - Do not use @ValueSource and TestNG DataProvider on the same method
 
 3. **Debugging**:
 ```java
