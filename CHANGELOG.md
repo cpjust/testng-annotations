@@ -6,4 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.0.0] - 2025-07-29
 Initial version.
+
+Contains the following features:
+- `@IncludeOnEnv` and `@ExcludeOnEnv` annotations for conditional test execution.
+- `IncludeOnEnvListener` and `ExcludeOnEnvListener` to handle these annotations.
