@@ -156,12 +156,14 @@ Deploy with `mvn clean deploy -Psign-artifacts`
 ## Troubleshooting
 
 | Issue | Solution |
-|-------|----------|
+|-------|-----------------------------------------------------------------------------------------------------------------------------------------|
 | Listeners not working | Verify registration via either:<br>- `@Listeners` annotation on test class, OR<br>- `META-INF/services/org.testng.ITestNGListener` file |
 | Environment not detected | Set properties:<br>- Via command line: `-Denv=value`<br>- In `@BeforeSuite` method<br>Note: `@BeforeClass` is too late! |
 | Unexpected test execution | Check annotation precedence rules above<br>Verify property name matches in annotations |
 | IllegalArgumentException | Verify you aren't passing a blank or empty string as tha `value` or `propertyName` annotation properties |
 | Signing failures | 1. Verify GPG is installed<br>2. Set `MAVEN_GPG_PASSPHRASE` env var<br>3. Check `settings.xml` config |
+| The @Test priority attribute is ignored | This is a bug in TestNG versions below 7.5 |
+| Other issues | Try upgrading/downgrading TestNG version<br>Check Java version compatibility |
 
 ## Best Practices
 
