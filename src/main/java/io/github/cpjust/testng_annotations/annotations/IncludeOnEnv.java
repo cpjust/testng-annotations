@@ -14,6 +14,8 @@ import java.lang.annotation.Target;
  * <ul>
  *     <li>value: (required) A list of environment names where the test should be included (case-insensitive).</li>
  *     <li>propertyName: (optional) The name of the Java property to read to get the name of the current environment.  Defaults to "env".</li>
+ *     <li>delimiter: (optional) If set, all values in the array will be split on this delimiter as a CSV string and combined into a single list (duplicates removed).
+ *     If not set (empty string), values are used as-is. Defaults to "".</li>
  * </ul>
  * NOTE: The environment names are compared case-insensitively.
  * <br/><br/>
@@ -55,4 +57,13 @@ public @interface IncludeOnEnv {
      * @return The property name to read.  Defaults to "env".
      */
     String propertyName() default "env";
+
+    /**
+     * The CSV string delimiter to use when splitting the values in the value array. If set to a non-empty string,
+     * all values in the array will be split on this delimiter and combined into a single list (duplicates removed).
+     * If empty, values are used as-is.
+     *
+     * @return The delimiter string. Defaults to "" (no splitting).
+     */
+    String delimiter() default "";
 }

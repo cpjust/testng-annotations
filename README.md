@@ -46,6 +46,13 @@ public void nonProductionTest() {
     // Only runs with -Denvironment=dev or -Denvironment=qa
 }
 
+// Using CSV string with delimiter
+@ExcludeOnEnv(value = {"dev,qa,prod"}, delimiter = ",")
+@Test
+public void csvDelimitedTest() {
+    // Won't run when -Denv=dev, -Denv=qa, or -Denv=prod
+}
+
 // Complex example with inheritance
 @ExcludeOnEnv("ci")
 public class BaseTest {
@@ -71,6 +78,13 @@ environments to be excluded.  This annotation will not just mark a test as skipp
 test and the test will not appear in the list of tests that were run if the test was excluded.
 NOTE: The environment names are compared case-insensitively.
 
+**CSV string support:**  
+You can use the `delimiter` attribute to split values in the `value` array as CSV strings. For example:
+```java
+@ExcludeOnEnv(value = {"dev,qa,prod"}, delimiter = ",")
+```
+This is equivalent to `@ExcludeOnEnv(value = {"dev", "qa", "prod"})`.
+
 Ex. If a test is annotated with `@ExcludeOnEnv(value = {"Stage", "Prod"}, propertyName = "environment")` and you run
 with the `-Denvironment=Prod` option, the test will be excluded.  If you omit the `propertyName` attribute, it will use
 `"env"` as the default property to check.
@@ -88,6 +102,13 @@ This annotation will include tests if the current environment (as defined by a J
 environments to be included.  This annotation will not just mark a test as skipped, it will not even attempt to run the
 test and the test will not appear in the list of tests that were run if the test was not included.
 NOTE: The environment names are compared case-insensitively.
+
+**CSV string support:**  
+You can use the `delimiter` attribute to split values in the `value` array as CSV strings. For example:
+```java
+@IncludeOnEnv(value = {"dev,qa,prod"}, delimiter = ",")
+```
+This is equivalent to `@IncludeOnEnv(value = {"dev", "qa", "prod"})`.
 
 Ex. If a test is annotated with `@IncludeOnEnv(value = {"Stage", "Prod"}, propertyName = "environment")` and you run
 with the `-Denvironment=Prod` option, the test will be included.  If you omit the `propertyName` attribute, it will use

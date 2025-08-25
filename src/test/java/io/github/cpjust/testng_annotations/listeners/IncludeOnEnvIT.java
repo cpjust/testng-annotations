@@ -75,6 +75,32 @@ public class IncludeOnEnvIT extends TestBase {
         testsRun.add(getCurrentMethodName(foo));
     }
 
+    @IncludeOnEnv(value = {"dev,matchEnv,stage"}, delimiter = ",")
+    @Test
+    public void testWithIncludedEnv_csvWithDelimiter_isRun() {
+        testsRun.add(getCurrentMethodName());
+    }
+
+    @IncludeOnEnv(value = {"dev|stage|unmatchEnv"}, delimiter = "|")
+    @Test
+    public void testWithNonIncludedEnv_csvWithDelimiter_isNotRun() {
+        testsRun.add(getCurrentMethodName());
+        failTestThatShouldNotRun();
+    }
+
+    @IncludeOnEnv(value = {"dev|prod", "stage|unmatchEnv"}, delimiter = "|")
+    @Test
+    public void testWithNonIncludedEnv_arrayOfCsvWithDelimiter_isNotRun() {
+        testsRun.add(getCurrentMethodName());
+        failTestThatShouldNotRun();
+    }
+
+    @IncludeOnEnv(value = {"dev|prod", "stage|matchEnv|"}, delimiter = "|")
+    @Test
+    public void testWithCsvIncludedEnv_arrayOfCsvWithDelimiter_isRun() {
+        testsRun.add(getCurrentMethodName());
+    }
+
     @Test(priority = 2)
     public void verifyIncludedTests() {
         log.debug("In verifyIncludedTests() checking expected tests against these tests that were run: {}", testsRun);
@@ -85,7 +111,9 @@ public class IncludeOnEnvIT extends TestBase {
                 "testWithIncludedEnv_isRun(two)",
                 "testWithIncludedEnv_customPropertyName_isRun()",
                 "testWithNoIncludeOnEnv_isRun()",
-                "testWithIncludedAndNonIncludedEnvs_isRun()"
+                "testWithIncludedAndNonIncludedEnvs_isRun()",
+                "testWithIncludedEnv_csvWithDelimiter_isRun()",
+                "testWithCsvIncludedEnv_arrayOfCsvWithDelimiter_isRun()"
         );
 
         assertThat("Wrong number of tests run!", testsRun, hasSize(expectedIncludedTests.size()));
@@ -104,7 +132,9 @@ public class IncludeOnEnvIT extends TestBase {
                 "testWithNonIncludedEnv_isNotRun()",
                 "testWithNonIncludedEnv_isNotRun(one)",
                 "testWithNonIncludedEnv_isNotRun(two)",
-                "testWithNonIncludedEnv_customPropertyName_isNotRun()"
+                "testWithNonIncludedEnv_customPropertyName_isNotRun()",
+                "testWithNonIncludedEnv_csvWithDelimiter_isNotRun()",
+                "testWithNonIncludedEnv_arrayOfCsvWithDelimiter_isNotRun()"
         );
 
         expectedExcludedTests.forEach(excludedTest ->

@@ -93,6 +93,11 @@ public class IncludeOnEnvListener extends EnvListenerBase implements IMethodInte
         }
 
         IncludeOnEnv includeOnEnv = element.getAnnotation(IncludeOnEnv.class);
-        return anyEnvMatches(includeOnEnv.propertyName(), includeOnEnv.value(), "IncludeOnEnv");
+        return anyEnvMatches(
+            includeOnEnv.propertyName(),
+            includeOnEnv.value(),
+            "IncludeOnEnv",
+            includeOnEnv.delimiter()
+        );
     }
 }
