@@ -155,7 +155,7 @@ class EnvListenerBaseTest {
 
     @Test
     @DisplayName("splitAndValidateEnvs removes duplicates after splitting")
-    void splitAndValidateEnvs_removesDuplicates() {
+    void splitAndValidateEnvs_csvArrayWithDuplicates_removesDuplicates() {
         String[] input = { "dev,dev,stage", "stage,prod" };
         String[] result = listener.splitAndValidateEnvs(input, ANNOTATION_NAME, ",");
         assertArrayEquals(
@@ -168,7 +168,7 @@ class EnvListenerBaseTest {
     @ParameterizedTest
     @ValueSource(strings = { "dev,,prod", " " })
     @DisplayName("splitAndValidateEnvs throws on blank or null env after splitting")
-    void splitAndValidateEnvs_throwsOnBlankOrNull(String inputString) {
+    void splitAndValidateEnvs_csvArrayWithEmptyOrWhiteSpaceOnlyElements_throwsException(String inputString) {
         String[] input = { inputString };
         IllegalArgumentException ex = assertThrows(
                 IllegalArgumentException.class,
@@ -179,6 +179,22 @@ class EnvListenerBaseTest {
                 "splitAndValidateEnvs threw the wrong assert message!",
                 ex.getMessage(),
                 equalTo(String.format("The 'value' parameter of the %s annotation cannot be null or blank!", ANNOTATION_NAME))
+        );
+    }
+
+    @Test
+    @DisplayName("splitAndValidateEnvs throws on null env elements")
+    void splitAndValidateEnvs_arrayWithNullElements_throwsException() {
+        String[] input = { "dev", null };
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> listener.splitAndValidateEnvs(input, ANNOTATION_NAME, ""),
+                "splitAndValidateEnvs should throw for null env elements"
+        );
+        assertThat(
+                "splitAndValidateEnvs threw the wrong assert message!",
+                ex.getMessage(),
+                equalTo(String.format("The 'value' parameter of the %s annotation cannot contain null elements when a delimiter is specified!", ANNOTATION_NAME))
         );
     }
 }
