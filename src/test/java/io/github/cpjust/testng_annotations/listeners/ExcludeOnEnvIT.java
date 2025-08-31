@@ -87,6 +87,13 @@ public class ExcludeOnEnvIT extends TestBase {
         failTestThatShouldNotRun();
     }
 
+    @ExcludeOnEnv(value = {"dev matchEnv stage"}, delimiter = " ")
+    @Test
+    public void testWithExcludedEnv_csvWithSpaceDelimiter_isNotRun() {
+        testsRun.add(getCurrentMethodName());
+        failTestThatShouldNotRun();
+    }
+
     @ExcludeOnEnv(value = {"dev,stage,unmatchEnv"}, delimiter = ",")
     @Test
     public void testWithNonExcludedEnv_csvWithDelimiter_isRun() {
@@ -147,6 +154,7 @@ public class ExcludeOnEnvIT extends TestBase {
                 "testWithExcludedEnv_customPropertyName_isNotRun()",
                 "testWithExcludedAndNonExcludedEnvs_isNotRun()",
                 "testWithExcludedEnv_csvWithDelimiter_isNotRun()",
+                "testWithExcludedEnv_csvWithSpaceDelimiter_isNotRun()",
                 "testWithCsvExcludedEnv_arrayOfCsvWithDelimiter_isNotRun()"
         );
 

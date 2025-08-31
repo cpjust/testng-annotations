@@ -75,7 +75,7 @@ public abstract class EnvListenerBase {
                 .flatMap(env -> {
                     if (env == null) { // NOTE: IntelliJ says this condition is always false, but it's not!
                         throw new IllegalArgumentException(
-                                String.format("The 'value' parameter of the %s annotation cannot contain null elements when a delimiter is specified!", annotationName));
+                                String.format("The 'value' parameter of the %s annotation cannot contain null elements!", annotationName));
                     } else if (delimiter.isEmpty()) {
                         return Arrays.stream(new String[]{env});
                     } else {
@@ -86,7 +86,7 @@ public abstract class EnvListenerBase {
                 .map(env -> { // NOTE: IntelliJ suggests using peek() here, but SonarQube says not to use peek().
                     if (env.isEmpty()) {
                         throw new IllegalArgumentException(
-                                String.format("The 'value' parameter of the %s annotation cannot be null or blank!", annotationName));
+                                String.format("The 'value' parameter of the %s annotation cannot contain blank elements!", annotationName));
                     }
                     return env;
                 })

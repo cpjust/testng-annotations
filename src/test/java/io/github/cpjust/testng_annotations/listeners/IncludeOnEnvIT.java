@@ -81,6 +81,12 @@ public class IncludeOnEnvIT extends TestBase {
         testsRun.add(getCurrentMethodName());
     }
 
+    @IncludeOnEnv(value = {"dev matchEnv stage"}, delimiter = " ")
+    @Test
+    public void testWithIncludedEnv_csvWithSpaceDelimiter_isRun() {
+        testsRun.add(getCurrentMethodName());
+    }
+
     @IncludeOnEnv(value = {"dev|stage|unmatchEnv"}, delimiter = "|")
     @Test
     public void testWithNonIncludedEnv_csvWithDelimiter_isNotRun() {
@@ -113,6 +119,7 @@ public class IncludeOnEnvIT extends TestBase {
                 "testWithNoIncludeOnEnv_isRun()",
                 "testWithIncludedAndNonIncludedEnvs_isRun()",
                 "testWithIncludedEnv_csvWithDelimiter_isRun()",
+                "testWithIncludedEnv_csvWithSpaceDelimiter_isRun()",
                 "testWithCsvIncludedEnv_arrayOfCsvWithDelimiter_isRun()"
         );
 

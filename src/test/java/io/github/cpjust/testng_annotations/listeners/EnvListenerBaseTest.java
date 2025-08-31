@@ -65,7 +65,7 @@ class EnvListenerBaseTest {
                 "anyEnvMatches() should throw an IllegalArgumentException for blank env values!"
         );
         assertThat("anyEnvMatches() threw the wrong assert message!", ex.getMessage(),
-                equalTo(String.format("The 'value' parameter of the %s annotation cannot be null or blank!", ANNOTATION_NAME)));
+                equalTo(String.format("The 'value' parameter of the %s annotation cannot contain blank elements!", ANNOTATION_NAME)));
     }
 
     @Test
@@ -116,7 +116,7 @@ class EnvListenerBaseTest {
                 "anyEnvMatches() should throw an IllegalArgumentException for blank CSV value!"
         );
         assertThat("anyEnvMatches() threw the wrong assert message!", ex.getMessage(),
-                equalTo(String.format("The 'value' parameter of the %s annotation cannot be null or blank!", ANNOTATION_NAME)));
+                equalTo(String.format("The 'value' parameter of the %s annotation cannot contain blank elements!", ANNOTATION_NAME)));
     }
 
     @Test
@@ -167,18 +167,18 @@ class EnvListenerBaseTest {
 
     @ParameterizedTest
     @ValueSource(strings = { "dev,,prod", " " })
-    @DisplayName("splitAndValidateEnvs throws on blank or null env after splitting")
+    @DisplayName("splitAndValidateEnvs throws on blank elements")
     void splitAndValidateEnvs_csvArrayWithEmptyOrWhiteSpaceOnlyElements_throwsException(String inputString) {
         String[] input = { inputString };
         IllegalArgumentException ex = assertThrows(
                 IllegalArgumentException.class,
                 () -> listener.splitAndValidateEnvs(input, ANNOTATION_NAME, ","),
-                "splitAndValidateEnvs should throw for blank or null env"
+                "splitAndValidateEnvs should throw for blank elements"
         );
         assertThat(
                 "splitAndValidateEnvs threw the wrong assert message!",
                 ex.getMessage(),
-                equalTo(String.format("The 'value' parameter of the %s annotation cannot be null or blank!", ANNOTATION_NAME))
+                equalTo(String.format("The 'value' parameter of the %s annotation cannot contain blank elements!", ANNOTATION_NAME))
         );
     }
 
@@ -194,7 +194,7 @@ class EnvListenerBaseTest {
         assertThat(
                 "splitAndValidateEnvs threw the wrong assert message!",
                 ex.getMessage(),
-                equalTo(String.format("The 'value' parameter of the %s annotation cannot contain null elements when a delimiter is specified!", ANNOTATION_NAME))
+                equalTo(String.format("The 'value' parameter of the %s annotation cannot contain null elements!", ANNOTATION_NAME))
         );
     }
 }
