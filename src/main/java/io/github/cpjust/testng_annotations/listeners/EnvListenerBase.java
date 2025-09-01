@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * Base class containing common code for *EnvListener classes.
@@ -77,13 +78,14 @@ public abstract class EnvListenerBase {
                         throw new IllegalArgumentException(
                                 String.format("The 'value' parameter of the %s annotation cannot contain null elements!", annotationName));
                     } else if (delimiter.isEmpty()) {
-                        return Arrays.stream(new String[]{env});
+                        return Stream.of(env);
                     } else {
                         return Arrays.stream(env.split(Pattern.quote(delimiter)));
                     }
                 })
-                .map(String::trim)
-                .map(env -> { // NOTE: IntelliJ suggests using peek() here, but SonarQube says not to use peek().
+                .map(env -> {
+                    env = env.trim();
+
                     if (env.isEmpty()) {
                         throw new IllegalArgumentException(
                                 String.format("The 'value' parameter of the %s annotation cannot contain blank elements!", annotationName));
