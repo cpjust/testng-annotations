@@ -1,6 +1,6 @@
 package io.github.cpjust.testng_annotations.listeners;
 
-import io.github.cpjust.testng_annotations.TestBase;
+import io.github.cpjust.testng_annotations.BaseITEnvListener;
 import io.github.cpjust.testng_annotations.annotations.IncludeOnEnv;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.annotations.DataProvider;
@@ -16,7 +16,7 @@ import static org.hamcrest.Matchers.containsString;
 
 @Slf4j
 @Listeners(value = IncludeOnEnvListener.class)
-public class IncludeOnEnvIT extends TestBase {
+public class IncludeOnEnvIT extends BaseITEnvListener {
     private static final List<String> testsRun = new ArrayList<>();
 
     @Test

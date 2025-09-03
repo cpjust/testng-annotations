@@ -1,6 +1,6 @@
 package io.github.cpjust.testng_annotations.listeners;
 
-import io.github.cpjust.testng_annotations.TestBase;
+import io.github.cpjust.testng_annotations.BaseITEnvListener;
 import io.github.cpjust.testng_annotations.annotations.ExcludeOnEnv;
 import io.github.cpjust.testng_annotations.annotations.IncludeOnEnv;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ import static org.hamcrest.Matchers.*;
 @ExcludeOnEnv(value = {"unmatchEnv"})
 @IncludeOnEnv(value = {"matchEnv"})
 @Listeners(value = {ExcludeOnEnvListener.class, IncludeOnEnvListener.class})
-public class ClassWithExcludeOnEnvAndIncludeOnEnvWithTestPriorityIT extends TestBase {
+public class ClassWithExcludeOnEnvAndIncludeOnEnvWithTestPriorityIT extends BaseITEnvListener {
     private static final List<String> testExecutionOrder = new ArrayList<>();
 
     @Test(priority = 3, dataProvider = "testData")
