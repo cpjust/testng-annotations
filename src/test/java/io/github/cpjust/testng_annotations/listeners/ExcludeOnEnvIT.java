@@ -1,6 +1,6 @@
 package io.github.cpjust.testng_annotations.listeners;
 
-import io.github.cpjust.testng_annotations.TestBase;
+import io.github.cpjust.testng_annotations.BaseITEnvListener;
 import io.github.cpjust.testng_annotations.annotations.ExcludeOnEnv;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.annotations.DataProvider;
@@ -13,7 +13,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @Slf4j
-public class ExcludeOnEnvIT extends TestBase {
+public class ExcludeOnEnvIT extends BaseITEnvListener {
     private static final List<String> testsRun = new ArrayList<>();
 
     @Test
@@ -80,6 +80,45 @@ public class ExcludeOnEnvIT extends TestBase {
         testsRun.add(getCurrentMethodName(foo));
     }
 
+    @ExcludeOnEnv(value = {"dev|matchEnv|stage"}, delimiter = "|")
+    @Test
+    public void testWithExcludedEnv_csvWithDelimiter_isNotRun() {
+        testsRun.add(getCurrentMethodName());
+        failTestThatShouldNotRun();
+    }
+
+    @ExcludeOnEnv(value = {"dev matchEnv stage"}, delimiter = " ")
+    @Test
+    public void testWithExcludedEnv_csvWithSpaceDelimiter_isNotRun() {
+        testsRun.add(getCurrentMethodName());
+        failTestThatShouldNotRun();
+    }
+
+    @ExcludeOnEnv(value = {"dev,stage,unmatchEnv"}, delimiter = ",")
+    @Test
+    public void testWithNonExcludedEnv_csvWithDelimiter_isRun() {
+        testsRun.add(getCurrentMethodName());
+    }
+
+    @ExcludeOnEnv(value = {"dev|prod", "stage|unmatchEnv"}, delimiter = "|")
+    @Test
+    public void testWithNonExcludedEnv_arrayOfCsvWithDelimiter_isRun() {
+        testsRun.add(getCurrentMethodName());
+    }
+
+    @ExcludeOnEnv(value = {"dev|prod", "stage|matchEnv"}, delimiter = "|")
+    @Test
+    public void testWithCsvExcludedEnv_arrayOfCsvWithDelimiter_isNotRun() {
+        testsRun.add(getCurrentMethodName());
+        failTestThatShouldNotRun();
+    }
+
+    @ExcludeOnEnv(value = {"stage|matchEnv"}, delimiter = ",")
+    @Test
+    public void testWithCsvExcludedEnv_csvWithWrongDelimiter_isRun() {
+        testsRun.add(getCurrentMethodName());
+    }
+
     @Test(priority = 2)
     public void verifyIncludedTests() {
         log.debug("Verifying included tests: {}", testsRun);
@@ -89,7 +128,10 @@ public class ExcludeOnEnvIT extends TestBase {
                 "testWithNonExcludedEnv_isRun(two)",
                 "testWithNonExcludedEnv_customPropertyName_isRun()",
                 "testWithMultipleNonExcludedEnvs_isRun()",
-                "testWithNoExcludeOnEnv_isRun()"
+                "testWithNoExcludeOnEnv_isRun()",
+                "testWithNonExcludedEnv_csvWithDelimiter_isRun()",
+                "testWithNonExcludedEnv_arrayOfCsvWithDelimiter_isRun()",
+                "testWithCsvExcludedEnv_csvWithWrongDelimiter_isRun()"
         );
 
         assertThat("Wrong number of tests run!", testsRun, hasSize(expectedIncludedTests.size()));
@@ -110,7 +152,10 @@ public class ExcludeOnEnvIT extends TestBase {
                 "testWithExcludedEnv_isNotRun(one)",
                 "testWithExcludedEnv_isNotRun(two)",
                 "testWithExcludedEnv_customPropertyName_isNotRun()",
-                "testWithExcludedAndNonExcludedEnvs_isNotRun()"
+                "testWithExcludedAndNonExcludedEnvs_isNotRun()",
+                "testWithExcludedEnv_csvWithDelimiter_isNotRun()",
+                "testWithExcludedEnv_csvWithSpaceDelimiter_isNotRun()",
+                "testWithCsvExcludedEnv_arrayOfCsvWithDelimiter_isNotRun()"
         );
 
         expectedExcludedTests.forEach(excludedTest ->

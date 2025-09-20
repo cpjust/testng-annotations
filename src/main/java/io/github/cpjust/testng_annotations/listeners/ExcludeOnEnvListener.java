@@ -96,6 +96,11 @@ public class ExcludeOnEnvListener extends EnvListenerBase implements IMethodInte
         }
 
         ExcludeOnEnv excludeOnEnv = element.getAnnotation(ExcludeOnEnv.class);
-        return anyEnvMatches(excludeOnEnv.propertyName(), excludeOnEnv.value(), "ExcludeOnEnv");
+        return anyEnvMatches(
+            excludeOnEnv.propertyName(),
+            excludeOnEnv.value(),
+            "ExcludeOnEnv",
+            excludeOnEnv.delimiter()
+        );
     }
 }

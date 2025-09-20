@@ -46,6 +46,13 @@ public void nonProductionTest() {
     // Only runs with -Denvironment=dev or -Denvironment=qa
 }
 
+// Using CSV string with delimiter
+@ExcludeOnEnv(value = {"dev,qa,prod"}, delimiter = ",")
+@Test
+public void csvDelimitedTest() {
+    // Won't run when -Denv=dev, -Denv=qa, or -Denv=prod
+}
+
 // Complex example with inheritance
 @ExcludeOnEnv("ci")
 public class BaseTest {
@@ -71,6 +78,13 @@ environments to be excluded.  This annotation will not just mark a test as skipp
 test and the test will not appear in the list of tests that were run if the test was excluded.
 NOTE: The environment names are compared case-insensitively.
 
+**CSV string support:**  
+You can use the `delimiter` attribute to split values in the `value` array as CSV strings. For example:
+```java
+@ExcludeOnEnv(value = {"dev,qa,prod"}, delimiter = ",")
+```
+This is equivalent to `@ExcludeOnEnv(value = {"dev", "qa", "prod"})`.
+
 Ex. If a test is annotated with `@ExcludeOnEnv(value = {"Stage", "Prod"}, propertyName = "environment")` and you run
 with the `-Denvironment=Prod` option, the test will be excluded.  If you omit the `propertyName` attribute, it will use
 `"env"` as the default property to check.
@@ -88,6 +102,13 @@ This annotation will include tests if the current environment (as defined by a J
 environments to be included.  This annotation will not just mark a test as skipped, it will not even attempt to run the
 test and the test will not appear in the list of tests that were run if the test was not included.
 NOTE: The environment names are compared case-insensitively.
+
+**CSV string support:**  
+You can use the `delimiter` attribute to split values in the `value` array as CSV strings. For example:
+```java
+@IncludeOnEnv(value = {"dev,qa,prod"}, delimiter = ",")
+```
+This is equivalent to `@IncludeOnEnv(value = {"dev", "qa", "prod"})`.
 
 Ex. If a test is annotated with `@IncludeOnEnv(value = {"Stage", "Prod"}, propertyName = "environment")` and you run
 with the `-Denvironment=Prod` option, the test will be included.  If you omit the `propertyName` attribute, it will use
@@ -156,12 +177,14 @@ Deploy with `mvn clean deploy -Psign-artifacts`
 ## Troubleshooting
 
 | Issue | Solution |
-|-------|----------|
+|-------|-----------------------------------------------------------------------------------------------------------------------------------------|
 | Listeners not working | Verify registration via either:<br>- `@Listeners` annotation on test class, OR<br>- `META-INF/services/org.testng.ITestNGListener` file |
 | Environment not detected | Set properties:<br>- Via command line: `-Denv=value`<br>- In `@BeforeSuite` method<br>Note: `@BeforeClass` is too late! |
 | Unexpected test execution | Check annotation precedence rules above<br>Verify property name matches in annotations |
 | IllegalArgumentException | Verify you aren't passing a blank or empty string as tha `value` or `propertyName` annotation properties |
 | Signing failures | 1. Verify GPG is installed<br>2. Set `MAVEN_GPG_PASSPHRASE` env var<br>3. Check `settings.xml` config |
+| The @Test priority attribute is ignored | This is a bug in TestNG versions below 7.5 |
+| Other issues | Try upgrading/downgrading TestNG version<br>Check Java version compatibility |
 
 ## Best Practices
 
