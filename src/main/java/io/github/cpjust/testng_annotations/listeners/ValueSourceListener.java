@@ -12,6 +12,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.function.IntFunction;
+import java.util.stream.Stream;
 
 /**
  * TestNG listener that processes @ValueSource annotations and converts them into data provider parameters.
@@ -49,6 +50,8 @@ public class ValueSourceListener implements IAnnotationTransformer {
         ValueSource valueSource = method.getAnnotation(ValueSource.class);
 
         if (valueSource == null) {
+            // This would only happen if a test method is using this data provider without the @ValueSource annotation.
+            // Ex. @Test(dataProvider = "valueSourceProvider", dataProviderClass = ValueSourceListener.class)
             throw new IllegalStateException("@ValueSource annotation not found on method: " + method.getName());
         }
 
@@ -253,38 +256,20 @@ public class ValueSourceListener implements IAnnotationTransformer {
      */
     private static void verifyOnlyOneValueTypeProvided(ValueSource valueSource) {
         // Count how many value arrays are non-empty
-        int nonEmptyCount = 0;
-
-        if (valueSource.strings().length > 0) {
-            ++nonEmptyCount;
-        }
-        if (valueSource.chars().length > 0) {
-            ++nonEmptyCount;
-        }
-        if (valueSource.booleans().length > 0) {
-            ++nonEmptyCount;
-        }
-        if (valueSource.bytes().length > 0) {
-            ++nonEmptyCount;
-        }
-        if (valueSource.shorts().length > 0) {
-            ++nonEmptyCount;
-        }
-        if (valueSource.ints().length > 0) {
-            ++nonEmptyCount;
-        }
-        if (valueSource.longs().length > 0) {
-            ++nonEmptyCount;
-        }
-        if (valueSource.floats().length > 0) {
-            ++nonEmptyCount;
-        }
-        if (valueSource.doubles().length > 0) {
-            ++nonEmptyCount;
-        }
-        if (valueSource.classes().length > 0) {
-            ++nonEmptyCount;
-        }
+        int nonEmptyCount = (int) Stream.of(
+                        valueSource.strings().length,
+                        valueSource.chars().length,
+                        valueSource.booleans().length,
+                        valueSource.bytes().length,
+                        valueSource.shorts().length,
+                        valueSource.ints().length,
+                        valueSource.longs().length,
+                        valueSource.floats().length,
+                        valueSource.doubles().length,
+                        valueSource.classes().length
+                )
+                .filter(len -> len > 0)
+                .count();
 
         if (nonEmptyCount > 1) {
             throw new IllegalStateException("@ValueSource must have exactly one value parameter set (e.g., only strings, only ints, etc.)");

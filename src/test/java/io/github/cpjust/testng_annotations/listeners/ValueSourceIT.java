@@ -30,6 +30,12 @@ public class ValueSourceIT {
     private final Set<Double> seenDoubles = new HashSet<>();
     private final Set<Class<?>> seenClasses = new HashSet<>();
 
+    @Test
+    public void testNoValueSource() {
+        log.info("This test does not use ValueSource and should run only once.");
+        Assert.assertTrue(true);
+    }
+
     // NOTE: We only need to provide the dataProvider and dataProviderClass in the @Test annotation if we don't register the ValueSourceListener
     // in the resources/META-INF/services/org.testng.ITestNGListener file.
     @Test(dataProvider = "valueSourceProvider", dataProviderClass = ValueSourceListener.class)

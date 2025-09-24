@@ -82,6 +82,8 @@ class ValueSourceListenerTest {
     // Dummy test methods for reflection
     @SuppressWarnings("java:S1186") // Suppress "Methods should not be empty" warning
     public static class ErrorCases {
+        public void noValueSource(String value) {} // no ValueSource annotation
+
         @ValueSource
         public void noValuesProvided(String value) {} // no values provided by ValueSource
 
@@ -117,6 +119,15 @@ class ValueSourceListenerTest {
 
         @ValueSource(classes = {String.class})
         public void wrongClassType(String value) {} // should be Class
+    }
+
+    @Test
+    void provideValues_noValueSourceAnnotation_throwsIllegalStateException() throws Exception {
+        Method method = ErrorCases.class.getMethod("noValueSource", String.class);
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                ValueSourceListener.provideValues(method)
+        );
+        assertEquals("@ValueSource annotation not found on method: noValueSource", ex.getMessage());
     }
 
     @Test
