@@ -12,6 +12,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.function.IntFunction;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -68,14 +69,14 @@ public class ValueSourceListener implements IAnnotationTransformer {
         // Array of handlers for each value type
         ValueTypeHandler[] handlers = new ValueTypeHandler[] {
             new ValueTypeHandler(valueSource.strings().length, () -> handleStrings(valueSource, paramType)),
-            new ValueTypeHandler(valueSource.chars().length, () -> handleChars(valueSource, paramType)),
-            new ValueTypeHandler(valueSource.booleans().length, () -> handleBooleans(valueSource, paramType)),
-            new ValueTypeHandler(valueSource.bytes().length, () -> handleBytes(valueSource, paramType)),
-            new ValueTypeHandler(valueSource.shorts().length, () -> handleShorts(valueSource, paramType)),
-            new ValueTypeHandler(valueSource.ints().length, () -> handleInts(valueSource, paramType)),
-            new ValueTypeHandler(valueSource.longs().length, () -> handleLongs(valueSource, paramType)),
-            new ValueTypeHandler(valueSource.floats().length, () -> handleFloats(valueSource, paramType)),
-            new ValueTypeHandler(valueSource.doubles().length, () -> handleDoubles(valueSource, paramType)),
+            new ValueTypeHandler(valueSource.chars().length, () -> handlePrimitives(valueSource::chars, paramType, char.class, Character.class, (arr, i) -> ((char[]) arr)[i])),
+            new ValueTypeHandler(valueSource.booleans().length, () -> handlePrimitives(valueSource::booleans, paramType, boolean.class, Boolean.class, (arr, i) -> ((boolean[]) arr)[i])),
+            new ValueTypeHandler(valueSource.bytes().length, () -> handlePrimitives(valueSource::bytes, paramType, byte.class, Byte.class, (arr, i) -> ((byte[]) arr)[i])),
+            new ValueTypeHandler(valueSource.shorts().length, () -> handlePrimitives(valueSource::shorts, paramType, short.class, Short.class, (arr, i) -> ((short[]) arr)[i])),
+            new ValueTypeHandler(valueSource.ints().length, () -> handlePrimitives(valueSource::ints, paramType, int.class, Integer.class, (arr, i) -> ((int[]) arr)[i])),
+            new ValueTypeHandler(valueSource.longs().length, () -> handlePrimitives(valueSource::longs, paramType, long.class, Long.class, (arr, i) -> ((long[]) arr)[i])),
+            new ValueTypeHandler(valueSource.floats().length, () -> handlePrimitives(valueSource::floats, paramType, float.class, Float.class, (arr, i) -> ((float[]) arr)[i])),
+            new ValueTypeHandler(valueSource.doubles().length, () -> handlePrimitives(valueSource::doubles, paramType, double.class, Double.class, (arr, i) -> ((double[]) arr)[i])),
             new ValueTypeHandler(valueSource.classes().length, () -> handleClasses(valueSource, paramType))
         };
 
@@ -133,107 +134,21 @@ public class ValueSourceListener implements IAnnotationTransformer {
     }
 
     /**
-     * Handles char values for @ValueSource.
-     * @param valueSource The ValueSource annotation.
-     * @param paramType The parameter type of the test method.
-     * @return Array of boxed Character values.
+     * Handles primitive values for @ValueSource.
+     * @param valueSourceMethod Supplier method to get the primitive array from ValueSource.  Ex. valueSource::ints
+     * @param actualParamType The parameter type of the test method.
+     * @param primitiveType The expected primitive type (e.g., int.class).
+     * @param boxedType The corresponding boxed type (e.g., Integer.class).
+     * @param getter Lambda to get the primitive value at index i.
+     * @return Array of boxed values.
      * @throws IllegalStateException if the parameter type is incorrect.
      */
-    private static Object[] handleChars(ValueSource valueSource, Class<?> paramType) {
-        checkParamType(char.class.equals(paramType) || Character.class.equals(paramType),
-                "Test method parameter must be char/Character when using chars() in @ValueSource");
-        return boxArray(valueSource.chars(), Character[]::new, (arr, i) -> ((char[]) arr)[i]);
-    }
-
-    /**
-     * Handles boolean values for @ValueSource.
-     * @param valueSource The ValueSource annotation.
-     * @param paramType The parameter type of the test method.
-     * @return Array of boxed Boolean values.
-     * @throws IllegalStateException if the parameter type is incorrect.
-     */
-    private static Object[] handleBooleans(ValueSource valueSource, Class<?> paramType) {
-        checkParamType(boolean.class.equals(paramType) || Boolean.class.equals(paramType),
-                "Test method parameter must be boolean/Boolean when using booleans() in @ValueSource");
-        return boxArray(valueSource.booleans(), Boolean[]::new, (arr, i) -> ((boolean[]) arr)[i]);
-    }
-
-    /**
-     * Handles byte values for @ValueSource.
-     * @param valueSource The ValueSource annotation.
-     * @param paramType The parameter type of the test method.
-     * @return Array of boxed Byte values.
-     * @throws IllegalStateException if the parameter type is incorrect.
-     */
-    private static Object[] handleBytes(ValueSource valueSource, Class<?> paramType) {
-        checkParamType(byte.class.equals(paramType) || Byte.class.equals(paramType),
-                "Test method parameter must be byte/Byte when using bytes() in @ValueSource");
-        return boxArray(valueSource.bytes(), Byte[]::new, (arr, i) -> ((byte[]) arr)[i]);
-    }
-
-    /**
-     * Handles short values for @ValueSource.
-     * @param valueSource The ValueSource annotation.
-     * @param paramType The parameter type of the test method.
-     * @return Array of boxed Short values.
-     * @throws IllegalStateException if the parameter type is incorrect.
-     */
-    private static Object[] handleShorts(ValueSource valueSource, Class<?> paramType) {
-        checkParamType(short.class.equals(paramType) || Short.class.equals(paramType),
-                "Test method parameter must be short/Short when using shorts() in @ValueSource");
-        return boxArray(valueSource.shorts(), Short[]::new, (arr, i) -> ((short[]) arr)[i]);
-    }
-
-    /**
-     * Handles int values for @ValueSource.
-     * @param valueSource The ValueSource annotation.
-     * @param paramType The parameter type of the test method.
-     * @return Array of boxed Integer values.
-     * @throws IllegalStateException if the parameter type is incorrect.
-     */
-    private static Object[] handleInts(ValueSource valueSource, Class<?> paramType) {
-        checkParamType(int.class.equals(paramType) || Integer.class.equals(paramType),
-            "Test method parameter must be int/Integer when using ints() in @ValueSource");
-        return boxArray(valueSource.ints(), Integer[]::new, (arr, i) -> ((int[]) arr)[i]);
-    }
-
-    /**
-     * Handles long values for @ValueSource.
-     * @param valueSource The ValueSource annotation.
-     * @param paramType The parameter type of the test method.
-     * @return Array of boxed Long values.
-     * @throws IllegalStateException if the parameter type is incorrect.
-     */
-    private static Object[] handleLongs(ValueSource valueSource, Class<?> paramType) {
-        checkParamType(long.class.equals(paramType) || Long.class.equals(paramType),
-            "Test method parameter must be long/Long when using longs() in @ValueSource");
-        return boxArray(valueSource.longs(), Long[]::new, (arr, i) -> ((long[]) arr)[i]);
-    }
-
-    /**
-     * Handles float values for @ValueSource.
-     * @param valueSource The ValueSource annotation.
-     * @param paramType The parameter type of the test method.
-     * @return Array of boxed Float values.
-     * @throws IllegalStateException if the parameter type is incorrect.
-     */
-    private static Object[] handleFloats(ValueSource valueSource, Class<?> paramType) {
-        checkParamType(float.class.equals(paramType) || Float.class.equals(paramType),
-                "Test method parameter must be float/Float when using floats() in @ValueSource");
-        return boxArray(valueSource.floats(), Float[]::new, (arr, i) -> ((float[]) arr)[i]);
-    }
-
-    /**
-     * Handles double values for @ValueSource.
-     * @param valueSource The ValueSource annotation.
-     * @param paramType The parameter type of the test method.
-     * @return Array of boxed Double values.
-     * @throws IllegalStateException if the parameter type is incorrect.
-     */
-    private static Object[] handleDoubles(ValueSource valueSource, Class<?> paramType) {
-        checkParamType(double.class.equals(paramType) || Double.class.equals(paramType),
-            "Test method parameter must be double/Double when using doubles() in @ValueSource");
-        return boxArray(valueSource.doubles(), Double[]::new, (arr, i) -> ((double[]) arr)[i]);
+    private static Object[] handlePrimitives(@NonNull Supplier<Object> valueSourceMethod, @NonNull Class<?> actualParamType,
+                                             @NonNull Class<?> primitiveType, @NonNull Class<?> boxedType, @NonNull ArrayElementGetter getter) {
+        String message = String.format("Test method parameter must be %s/%s when using %ss() in @ValueSource",
+                primitiveType.getSimpleName(), boxedType.getSimpleName(), primitiveType.getSimpleName());
+        checkParamType(primitiveType.equals(actualParamType) || Character.class.equals(actualParamType), message);
+        return boxArray(valueSourceMethod.get(), i -> (Object[]) Array.newInstance(boxedType, i), getter);
     }
 
     /**

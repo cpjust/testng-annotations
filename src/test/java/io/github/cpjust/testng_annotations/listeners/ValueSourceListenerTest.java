@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ValueSourceListenerTest {
+    private static final String UNEXPECTED_EXCEPTION_MESSAGE = "Unexpected exception message";
+
     // region Positive cases
     // Dummy test methods for reflection
     @SuppressWarnings("java:S1186") // Suppress "Methods should not be empty" warning
@@ -71,9 +73,10 @@ class ValueSourceListenerTest {
     void provideValues_validValues_returnExpectedValues(String methodName, Class<?> paramType, Object[] expected) throws Exception {
         Method method = PositiveCases.class.getMethod(methodName, paramType);
         Object[] values = ValueSourceListener.provideValues(method);
-        assertEquals(expected.length, values.length);
-        for (int i = 0; i < expected.length; i++) {
-            assertEquals(expected[i], values[i]);
+        assertEquals(expected.length, values.length, "Wrong number of values returned!");
+
+        for (int i = 0; i < expected.length; ++i) {
+            assertEquals(expected[i], values[i], "Value at index " + i + " does not match!");
         }
     }
     // endregion Positive cases
@@ -127,7 +130,7 @@ class ValueSourceListenerTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
                 ValueSourceListener.provideValues(method)
         );
-        assertEquals("@ValueSource annotation not found on method: noValueSource", ex.getMessage());
+        assertEquals("@ValueSource annotation not found on method: noValueSource", ex.getMessage(), UNEXPECTED_EXCEPTION_MESSAGE);
     }
 
     @Test
@@ -136,7 +139,7 @@ class ValueSourceListenerTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
             ValueSourceListener.provideValues(method)
         );
-        assertEquals("No values provided in @ValueSource annotation", ex.getMessage());
+        assertEquals("No values provided in @ValueSource annotation", ex.getMessage(), UNEXPECTED_EXCEPTION_MESSAGE);
     }
 
     @Test
@@ -145,7 +148,7 @@ class ValueSourceListenerTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
             ValueSourceListener.provideValues(method)
         );
-        assertEquals("@ValueSource can only be used with single-parameter test methods", ex.getMessage());
+        assertEquals("@ValueSource can only be used with single-parameter test methods", ex.getMessage(), UNEXPECTED_EXCEPTION_MESSAGE);
     }
 
     @Test
@@ -154,7 +157,7 @@ class ValueSourceListenerTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
                 ValueSourceListener.provideValues(method)
         );
-        assertEquals("@ValueSource must have exactly one value parameter set (e.g., only strings, only ints, etc.)", ex.getMessage());
+        assertEquals("@ValueSource must have exactly one value parameter set (e.g., only strings, only ints, etc.)", ex.getMessage(), UNEXPECTED_EXCEPTION_MESSAGE);
     }
 
     @ParameterizedTest
@@ -164,7 +167,7 @@ class ValueSourceListenerTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
                 ValueSourceListener.provideValues(method)
         );
-        assertEquals(String.format("Test method parameter must be %s in @ValueSource", expectedMessage), ex.getMessage());
+        assertEquals(String.format("Test method parameter must be %s in @ValueSource", expectedMessage), ex.getMessage(), UNEXPECTED_EXCEPTION_MESSAGE);
     }
 
     /**
@@ -247,7 +250,7 @@ class ValueSourceListenerTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
             ValueSourceListener.provideValues(method)
         );
-        assertEquals("No values provided in @ValueSource annotation", ex.getMessage());
+        assertEquals("No values provided in @ValueSource annotation", ex.getMessage(), UNEXPECTED_EXCEPTION_MESSAGE);
     }
     // endregion Empty value arrays
 }
