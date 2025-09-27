@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
 
 /**
  * This class demonstrates the use of the ExcludeOnEnv and IncludeOnEnv annotations with test priorities.
