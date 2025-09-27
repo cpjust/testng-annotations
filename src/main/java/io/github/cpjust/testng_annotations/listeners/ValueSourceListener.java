@@ -1,7 +1,6 @@
 package io.github.cpjust.testng_annotations.listeners;
 
 import io.github.cpjust.testng_annotations.annotations.ValueSource;
-import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.IAnnotationTransformer;
@@ -11,9 +10,9 @@ import org.testng.annotations.ITestAnnotation;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.Optional;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 /**
  * TestNG listener that processes @ValueSource annotations and converts them into data provider parameters.
@@ -21,6 +20,22 @@ import java.util.stream.Stream;
 @Slf4j
 public class ValueSourceListener implements IAnnotationTransformer {
     private static final String VALUE_SOURCE_PROVIDER = "valueSourceProvider";
+
+    /**
+     * Enum representing the possible value types in @ValueSource.
+     */
+    private enum ValueType {
+        STRINGS,
+        CHARS,
+        BOOLEANS,
+        BYTES,
+        SHORTS,
+        INTS,
+        LONGS,
+        FLOATS,
+        DOUBLES,
+        CLASSES
+    }
 
     /**
      * Transforms test methods annotated with {@link ValueSource} to use a data provider.
@@ -62,46 +77,38 @@ public class ValueSourceListener implements IAnnotationTransformer {
             throw new IllegalStateException("@ValueSource can only be used with single-parameter test methods");
         }
 
-        verifyOnlyOneValueTypeProvided(valueSource);
+        Optional<ValueType> valueType = getSingleValueTypeProvided(valueSource);
+
+        if (valueType.isEmpty()) {
+            throw new IllegalStateException("No values provided in @ValueSource annotation");
+        }
 
         Class<?> paramType = paramTypes[0];
 
-        // Array of handlers for each value type
-        ValueTypeHandler[] handlers = new ValueTypeHandler[] {
-            new ValueTypeHandler(valueSource.strings().length, () -> handleStrings(valueSource, paramType)),
-            new ValueTypeHandler(valueSource.chars().length, () -> handlePrimitives(valueSource::chars, paramType, char.class, Character.class, (arr, i) -> ((char[]) arr)[i])),
-            new ValueTypeHandler(valueSource.booleans().length, () -> handlePrimitives(valueSource::booleans, paramType, boolean.class, Boolean.class, (arr, i) -> ((boolean[]) arr)[i])),
-            new ValueTypeHandler(valueSource.bytes().length, () -> handlePrimitives(valueSource::bytes, paramType, byte.class, Byte.class, (arr, i) -> ((byte[]) arr)[i])),
-            new ValueTypeHandler(valueSource.shorts().length, () -> handlePrimitives(valueSource::shorts, paramType, short.class, Short.class, (arr, i) -> ((short[]) arr)[i])),
-            new ValueTypeHandler(valueSource.ints().length, () -> handlePrimitives(valueSource::ints, paramType, int.class, Integer.class, (arr, i) -> ((int[]) arr)[i])),
-            new ValueTypeHandler(valueSource.longs().length, () -> handlePrimitives(valueSource::longs, paramType, long.class, Long.class, (arr, i) -> ((long[]) arr)[i])),
-            new ValueTypeHandler(valueSource.floats().length, () -> handlePrimitives(valueSource::floats, paramType, float.class, Float.class, (arr, i) -> ((float[]) arr)[i])),
-            new ValueTypeHandler(valueSource.doubles().length, () -> handlePrimitives(valueSource::doubles, paramType, double.class, Double.class, (arr, i) -> ((double[]) arr)[i])),
-            new ValueTypeHandler(valueSource.classes().length, () -> handleClasses(valueSource, paramType))
-        };
-
-        for (ValueTypeHandler handler : handlers) {
-            if (handler.length > 0) {
-                return handler.supplier.get();
-            }
+        switch (valueType.get()) {
+            case STRINGS:
+                return handleStrings(valueSource, paramType);
+            case CHARS:
+                return handlePrimitives(valueSource::chars, paramType, char.class, Character.class, (arr, i) -> ((char[]) arr)[i]);
+            case BOOLEANS:
+                return handlePrimitives(valueSource::booleans, paramType, boolean.class, Boolean.class, (arr, i) -> ((boolean[]) arr)[i]);
+            case BYTES:
+                return handlePrimitives(valueSource::bytes, paramType, byte.class, Byte.class, (arr, i) -> ((byte[]) arr)[i]);
+            case SHORTS:
+                return handlePrimitives(valueSource::shorts, paramType, short.class, Short.class, (arr, i) -> ((short[]) arr)[i]);
+            case INTS:
+                return handlePrimitives(valueSource::ints, paramType, int.class, Integer.class, (arr, i) -> ((int[]) arr)[i]);
+            case LONGS:
+                return handlePrimitives(valueSource::longs, paramType, long.class, Long.class, (arr, i) -> ((long[]) arr)[i]);
+            case FLOATS:
+                return handlePrimitives(valueSource::floats, paramType, float.class, Float.class, (arr, i) -> ((float[]) arr)[i]);
+            case DOUBLES:
+                return handlePrimitives(valueSource::doubles, paramType, double.class, Double.class, (arr, i) -> ((double[]) arr)[i]);
+            case CLASSES:
+                return handleClasses(valueSource, paramType);
+            default:
+                throw new IllegalStateException("Unhandled value type in @ValueSource: " + valueType.get());
         }
-
-        throw new IllegalStateException("No values provided in @ValueSource annotation");
-    }
-
-    /**
-     * Helper class for value type handling.
-     */
-    @AllArgsConstructor
-    private static class ValueTypeHandler {
-        /**
-         * The length of the value array.
-         */
-        final int length;
-        /**
-         * The supplier that provides the boxed value array.
-         */
-        final java.util.function.Supplier<Object[]> supplier;
     }
 
     /**
@@ -165,30 +172,37 @@ public class ValueSourceListener implements IAnnotationTransformer {
     }
 
     /**
-     * Verifies that only one value type is provided in the ValueSource annotation.
+     * Checks which value type is set in the ValueSource annotation.
      * @param valueSource The ValueSource annotation.
-     * @throws IllegalStateException if more than one value type is provided.
+     * @return Optional containing the ValueType if exactly one is set, otherwise Optional.empty().
      */
-    private static void verifyOnlyOneValueTypeProvided(ValueSource valueSource) {
-        // Count how many value arrays are non-empty
-        int nonEmptyCount = (int) Stream.of(
-                        valueSource.strings().length,
-                        valueSource.chars().length,
-                        valueSource.booleans().length,
-                        valueSource.bytes().length,
-                        valueSource.shorts().length,
-                        valueSource.ints().length,
-                        valueSource.longs().length,
-                        valueSource.floats().length,
-                        valueSource.doubles().length,
-                        valueSource.classes().length
-                )
-                .filter(len -> len > 0)
-                .count();
+    private static Optional<ValueType> getSingleValueTypeProvided(ValueSource valueSource) {
+        int[] lengths = {
+                valueSource.strings().length,
+                valueSource.chars().length,
+                valueSource.booleans().length,
+                valueSource.bytes().length,
+                valueSource.shorts().length,
+                valueSource.ints().length,
+                valueSource.longs().length,
+                valueSource.floats().length,
+                valueSource.doubles().length,
+                valueSource.classes().length
+        };
 
-        if (nonEmptyCount > 1) {
-            throw new IllegalStateException("@ValueSource must have exactly one value parameter set (e.g., only strings, only ints, etc.)");
+        ValueType[] valueTypes = ValueType.values();
+        int foundIndex = -1;
+
+        for (int i = 0; i < lengths.length; ++i) {
+            if (lengths[i] > 0) {
+                if (foundIndex != -1) {
+                    throw new IllegalStateException("@ValueSource must have exactly one value parameter set (e.g., only strings, only ints, etc.)");
+                }
+                foundIndex = i;
+            }
         }
+
+        return foundIndex != -1 ? Optional.of(valueTypes[foundIndex]) : Optional.empty();
     }
 
     /**
