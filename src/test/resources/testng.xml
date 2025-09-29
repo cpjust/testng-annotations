@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- This file isn't needed to run the tests in this project, it's just an example of how you could configure the listeners in a testng.xml file. -->
+<suite name="Integration Test Suite">
+    <listeners>
+        <listener class-name="io.github.cpjust.testng_annotations.listeners.ValueSourceListener"/>
+    </listeners>
+    <test name="ValueSource Tests">
+        <classes>
+            <class name="io.github.cpjust.testng_annotations.listeners.ValueSourceIT"/>
+        </classes>
+    </test>
+</suite>
+
