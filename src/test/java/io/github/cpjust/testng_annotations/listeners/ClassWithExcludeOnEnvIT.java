@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static io.github.cpjust.testng_annotations.TestUtils.getCurrentMethodNameWithParams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
@@ -43,25 +44,25 @@ public class ClassWithExcludeOnEnvIT extends BaseITEnvListener {
 
     @Test
     public void classWithNoExcludeOnEnv_isNotRun() {
-        classWithExcludeOnEnvTestsRun.add(getCurrentMethodName());
+        classWithExcludeOnEnvTestsRun.add(getCurrentMethodNameWithParams());
     }
 
     @ExcludeOnEnv(value = {"matchEnv"})
     @Test
     public void classWithExcludedEnv_isNotRun() {
-        classWithExcludeOnEnvTestsRun.add(getCurrentMethodName());
+        classWithExcludeOnEnvTestsRun.add(getCurrentMethodNameWithParams());
     }
 
     @ExcludeOnEnv(value = {"matchEnv"})
     @Test(dataProvider = "testData")
     public void classWithExcludedEnv_isNotRun(String foo) {
-        classWithExcludeOnEnvTestsRun.add(getCurrentMethodName(foo));
+        classWithExcludeOnEnvTestsRun.add(getCurrentMethodNameWithParams(foo));
     }
 
     @ExcludeOnEnv(value = {"unmatchEnv"})
     @Test(dataProvider = "testData")
     public void classWithNonExcludedEnv_isNotRun(String foo) {
-        classWithExcludeOnEnvTestsRun.add(getCurrentMethodName(foo));
+        classWithExcludeOnEnvTestsRun.add(getCurrentMethodNameWithParams(foo));
     }
 
     @DataProvider

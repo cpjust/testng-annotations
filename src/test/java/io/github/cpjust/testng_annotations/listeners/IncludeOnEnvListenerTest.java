@@ -15,19 +15,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 class IncludeOnEnvListenerTest extends BaseTestEnvListener {
+    static final String METHODS_SHOULD_NOT_BE_EMPTY = "java:S1186"; // Suppress "Methods should not be empty" warning
+
+    @SuppressWarnings(METHODS_SHOULD_NOT_BE_EMPTY) // Empty methods are intentional for test purposes
     public static class TestClass {
-        @SuppressWarnings("java:S1186") // Empty method is intentional for test purposes
         public void noAnnotation() {}
 
-        @SuppressWarnings("java:S1186") // Empty method is intentional for test purposes
         @IncludeOnEnv("unmatchEnv")
         public void methodNotIncluded() {}
 
-        @SuppressWarnings("java:S1186") // Empty method is intentional for test purposes
         @IncludeOnEnv(MATCH_ENV)
         public void methodIncluded() {}
 
-        @SuppressWarnings("java:S1186") // Empty method is intentional for test purposes
         @IncludeOnEnv(value = {"dev,matchEnv"}, delimiter = ",")
         public void methodIncludedCsv() {}
     }

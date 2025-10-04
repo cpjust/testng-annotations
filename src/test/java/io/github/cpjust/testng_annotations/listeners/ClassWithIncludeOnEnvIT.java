@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.github.cpjust.testng_annotations.TestUtils.getCurrentMethodNameWithParams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
@@ -43,31 +44,31 @@ public class ClassWithIncludeOnEnvIT extends BaseITEnvListener {
 
     @Test
     public void classWithNoIncludeOnEnv_isNotRun() {
-        classWithIncludeOnEnvTestsRun.add(getCurrentMethodName());
+        classWithIncludeOnEnvTestsRun.add(getCurrentMethodNameWithParams());
     }
 
     @IncludeOnEnv(value = {"unmatchEnv"})
     @Test
     public void classWithNonIncludedEnv_isNotRun() {
-        classWithIncludeOnEnvTestsRun.add(getCurrentMethodName());
+        classWithIncludeOnEnvTestsRun.add(getCurrentMethodNameWithParams());
     }
 
     @IncludeOnEnv(value = {"matchEnv"})
     @Test
     public void classWithIncludedEnv_isRun() {
-        classWithIncludeOnEnvTestsRun.add(getCurrentMethodName());
+        classWithIncludeOnEnvTestsRun.add(getCurrentMethodNameWithParams());
     }
 
     @IncludeOnEnv(value = {"matchEnv"})
     @Test(dataProvider = "testData")
     public void classWithIncludedEnv_isRun(String foo) {
-        classWithIncludeOnEnvTestsRun.add(getCurrentMethodName(foo));
+        classWithIncludeOnEnvTestsRun.add(getCurrentMethodNameWithParams(foo));
     }
 
     @IncludeOnEnv(value = {"unmatchEnv"})
     @Test(dataProvider = "testData")
     public void classWithNonIncludedEnv_isNotRun(String foo) {
-        classWithIncludeOnEnvTestsRun.add(getCurrentMethodName(foo));
+        classWithIncludeOnEnvTestsRun.add(getCurrentMethodNameWithParams(foo));
     }
 
     @DataProvider

@@ -9,6 +9,7 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.github.cpjust.testng_annotations.TestUtils.getCurrentMethodNameWithParams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
@@ -21,105 +22,105 @@ public class ExcludeOnEnvIT extends BaseITEnvListener {
 
     @Test
     public void testWithNoExcludeOnEnv_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @ExcludeOnEnv(value = "matchEnv")
     @Test
     public void testWithExcludedEnv_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
     @ExcludeOnEnv(value = "unmatchEnv")
     @Test
     public void testWithNonExcludedEnv_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @ExcludeOnEnv(value = "MATCHeNV")
     @Test
     public void testWithExcludedEnv_differentCase_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
     @ExcludeOnEnv(value = {"matchEnvironment"}, propertyName = "environment")
     @Test
     public void testWithExcludedEnv_customPropertyName_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
     @ExcludeOnEnv(value = {"unmatchEnvironment"}, propertyName = "environment")
     @Test
     public void testWithNonExcludedEnv_customPropertyName_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @ExcludeOnEnv(value = {"matchEnv", "unmatchEnv"})
     @Test
     public void testWithExcludedAndNonExcludedEnvs_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
     @ExcludeOnEnv(value = {"unmatchEnv", "betterEnv"})
     @Test
     public void testWithMultipleNonExcludedEnvs_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @ExcludeOnEnv(value = {"matchEnv"})
     @Test(dataProvider = "testData")
     public void testWithExcludedEnv_isNotRun(String foo) {
-        testsRun.add(getCurrentMethodName(foo));
+        testsRun.add(getCurrentMethodNameWithParams(foo));
         failTestThatShouldNotRun();
     }
 
     @ExcludeOnEnv(value = {"unmatchEnv"})
     @Test(dataProvider = "testData")
     public void testWithNonExcludedEnv_isRun(String foo) {
-        testsRun.add(getCurrentMethodName(foo));
+        testsRun.add(getCurrentMethodNameWithParams(foo));
     }
 
     @ExcludeOnEnv(value = {"dev|matchEnv|stage"}, delimiter = "|")
     @Test
     public void testWithExcludedEnv_csvWithDelimiter_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
     @ExcludeOnEnv(value = {"dev matchEnv stage"}, delimiter = " ")
     @Test
     public void testWithExcludedEnv_csvWithSpaceDelimiter_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
     @ExcludeOnEnv(value = {"dev,stage,unmatchEnv"}, delimiter = ",")
     @Test
     public void testWithNonExcludedEnv_csvWithDelimiter_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @ExcludeOnEnv(value = {"dev|prod", "stage|unmatchEnv"}, delimiter = "|")
     @Test
     public void testWithNonExcludedEnv_arrayOfCsvWithDelimiter_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @ExcludeOnEnv(value = {"dev|prod", "stage|matchEnv"}, delimiter = "|")
     @Test
     public void testWithCsvExcludedEnv_arrayOfCsvWithDelimiter_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
     @ExcludeOnEnv(value = {"stage|matchEnv"}, delimiter = ",")
     @Test
     public void testWithCsvExcludedEnv_csvWithWrongDelimiter_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @Test(priority = 2)
