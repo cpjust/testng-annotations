@@ -1,5 +1,6 @@
 package io.github.cpjust.testng_annotations.listeners;
 
+import io.github.cpjust.testng_annotations.IntelliJWarnings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ class EnvListenerBaseNullAndTrimTest {
 
     @Test
     @DisplayName("anyEnvMatches should throw NPE when null parameters are passed")
-    @SuppressWarnings("ConstantConditions") // Intentionally passing null to verify NPE behavior
+    @SuppressWarnings(IntelliJWarnings.PASSING_NULL_ARG_TO_NONNULL_PARAMETER) // Intentionally passing null to verify NPE behavior
     void anyEnvMatches_nullParams_throwNPE() {
         assertThrows(NullPointerException.class, () -> listener.anyEnvMatches(null, new String[] {ENV}, ANNOTATION_NAME, ""));
         assertThrows(NullPointerException.class, () -> listener.anyEnvMatches(ENV, null, ANNOTATION_NAME, ""));
@@ -41,7 +42,7 @@ class EnvListenerBaseNullAndTrimTest {
 
     @Test
     @DisplayName("splitAndValidateEnvs should throw NPE when null array is passed")
-    @SuppressWarnings("ConstantConditions") // Intentionally passing null to verify NPE behavior
+    @SuppressWarnings(IntelliJWarnings.PASSING_NULL_ARG_TO_NONNULL_PARAMETER) // Intentionally passing null to verify NPE behavior
     void splitAndValidateEnvs_nullArray_throwsNPE() {
         assertThrows(NullPointerException.class, () -> listener.splitAndValidateEnvs(null, ANNOTATION_NAME, ""));
         assertThrows(NullPointerException.class, () -> listener.splitAndValidateEnvs(new String[] { "a" }, null, ""));

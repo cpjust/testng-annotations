@@ -6,7 +6,7 @@
 
     <groupId>io.github.cpjust</groupId>
     <artifactId>testng-annotations</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <name>testng-annotations</name>
     <description>Contains some extra annotations that are useful when running tests in TestNG.</description>
     <url>https://github.com/cpjust/testng-annotations</url>

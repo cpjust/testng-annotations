@@ -6,7 +6,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.1.0] - 2025-09-20
+## [1.1.1] - 2025-10-03
+
+### Added
+- `@NullSource` annotation to provide a null value as a source for test values, similar to JUnit 5's `@NullSource`.
+- `@EmptySource` annotation to provide an empty value as a source for test values, similar to JUnit 5's `@EmptySource`.
+- `@NullAndEmptySource` annotation to provide both null and empty values as sources for test values, similar to JUnit 5's `@NullAndEmptySource`.
+
+## [1.1.0] - 2025-09-28
 
 ### Added
 - `@ValueSource` annotation to provide a source for test values, just like JUnit 5's `@ValueSource`.

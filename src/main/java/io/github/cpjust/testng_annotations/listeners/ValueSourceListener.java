@@ -1,6 +1,9 @@
 package io.github.cpjust.testng_annotations.listeners;
 
 import io.github.cpjust.testng_annotations.annotations.ValueSource;
+import io.github.cpjust.testng_annotations.annotations.NullSource;
+import io.github.cpjust.testng_annotations.annotations.EmptySource;
+import io.github.cpjust.testng_annotations.annotations.NullAndEmptySource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.IAnnotationTransformer;
@@ -10,7 +13,15 @@ import org.testng.annotations.ITestAnnotation;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
 
@@ -48,7 +59,14 @@ public class ValueSourceListener implements IAnnotationTransformer {
     @Override
     public void transform(ITestAnnotation annotation, Class testClass,
                         Constructor testConstructor, Method testMethod) {
-        if (testMethod != null && testMethod.isAnnotationPresent(ValueSource.class)) {
+        if (testMethod == null) {
+            return; // Nothing to do if there's no test method.
+        }
+
+        if (testMethod.isAnnotationPresent(ValueSource.class) ||
+            testMethod.isAnnotationPresent(NullSource.class) ||
+            testMethod.isAnnotationPresent(EmptySource.class) ||
+            testMethod.isAnnotationPresent(NullAndEmptySource.class)) {
             annotation.setDataProvider(VALUE_SOURCE_PROVIDER);
             annotation.setDataProviderClass(ValueSourceListener.class);
         }
@@ -63,14 +81,70 @@ public class ValueSourceListener implements IAnnotationTransformer {
      */
     @DataProvider(name = VALUE_SOURCE_PROVIDER)
     public static Object[] provideValues(@NonNull Method method) {
-        ValueSource valueSource = method.getAnnotation(ValueSource.class);
+        // Use a LinkedHashSet to maintain insertion order and avoid duplicates.
+        Set<Object> resultSet = new LinkedHashSet<>();
 
-        if (valueSource == null) {
-            // This would only happen if a test method is using this data provider without the @ValueSource annotation.
-            // Ex. @Test(dataProvider = "valueSourceProvider", dataProviderClass = ValueSourceListener.class)
-            throw new IllegalStateException("@ValueSource annotation not found on method: " + method.getName());
+        // Handle @NullSource
+        if (method.isAnnotationPresent(NullSource.class)) {
+            Class<?>[] paramTypes = method.getParameterTypes();
+
+            if (paramTypes.length != 1) {
+                throw new IllegalStateException("@NullSource can only be used with single-parameter test methods");
+            }
+
+            resultSet.add(null);
         }
 
+        // Handle @EmptySource
+        if (method.isAnnotationPresent(EmptySource.class)) {
+            Class<?>[] paramTypes = method.getParameterTypes();
+
+            if (paramTypes.length != 1) {
+                throw new IllegalStateException("@EmptySource can only be used with single-parameter test methods");
+            }
+
+            Class<?> paramType = paramTypes[0];
+            resultSet.add(getEmptyValue(paramType));
+        }
+
+        // Handle @NullAndEmptySource
+        if (method.isAnnotationPresent(NullAndEmptySource.class)) {
+            Class<?>[] paramTypes = method.getParameterTypes();
+
+            if (paramTypes.length != 1) {
+                throw new IllegalStateException("@NullAndEmptySource can only be used with single-parameter test methods");
+            }
+
+            Class<?> paramType = paramTypes[0];
+            resultSet.add(null);
+            resultSet.add(getEmptyValue(paramType));
+        }
+
+        // Handle @ValueSource
+        if (method.isAnnotationPresent(ValueSource.class)) {
+            Object[] values = getValueSourceValues(method);
+            Collections.addAll(resultSet, values);
+        }
+
+        if (resultSet.isEmpty()) {
+            // This would only happen if a test method is using this data provider without any @NullSource, @EmptySource,
+            // @NullAndEmptySource or @ValueSource annotations.
+            // Ex. @Test(dataProvider = "valueSourceProvider", dataProviderClass = ValueSourceListener.class)
+            throw new IllegalStateException("No [@NullSource, @EmptySource, @NullAndEmptySource, @ValueSource] annotations found on method: " + method.getName());
+        }
+
+        return resultSet.toArray();
+    }
+
+    /**
+     * Retrieves the values from the @ValueSource annotation on the given method.
+     *
+     * @param method The test method.
+     * @return An array of values specified in the @ValueSource annotation.
+     * @throws IllegalStateException if the annotation is misused or no values are provided.
+     */
+    private static Object[] getValueSourceValues(Method method) {
+        ValueSource valueSource = method.getAnnotation(ValueSource.class);
         Class<?>[] paramTypes = method.getParameterTypes();
 
         if (paramTypes.length != 1) {
@@ -235,5 +309,42 @@ public class ValueSourceListener implements IAnnotationTransformer {
         }
 
         return result;
+    }
+
+    /**
+     * Returns an empty value for the given parameter type (empty String, array, or collection).
+     * @param paramType The parameter type.
+     * @return An empty value appropriate for the type, or throws if not supported.
+     */
+    private static Object getEmptyValue(Class<?> paramType) {
+        if (paramType.equals(String.class)) {
+            return "";
+        }
+
+        if (paramType.isArray()) {
+            return Array.newInstance(paramType.getComponentType(), 0);
+        }
+
+        if (Collection.class.isAssignableFrom(paramType)) {
+            if (List.class.isAssignableFrom(paramType)) {
+                return Collections.emptyList();
+            }
+
+            if (Set.class.isAssignableFrom(paramType)) {
+                return Collections.emptySet();
+            }
+
+            if (Queue.class.isAssignableFrom(paramType)) {
+                return new LinkedList<>();
+            }
+
+            return Collections.emptyList(); // fallback
+        }
+
+        if (Map.class.isAssignableFrom(paramType)) {
+            return Collections.emptyMap();
+        }
+
+        throw new IllegalStateException("@EmptySource/@NullAndEmptySource not supported for parameter type: " + paramType.getName());
     }
 }
