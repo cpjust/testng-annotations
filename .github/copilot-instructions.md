@@ -42,7 +42,36 @@ This project contains some extra annotations that are useful when running tests 
 ### Code Style
 - Functions should be separated by a single blank line.
 - Add a blank line between different blocks of code (e.g., between fields and methods) for readability, and add a comment above blocks of code that might be complicated.
+  - Example:
+    ```java
+    private int age;
+    private String name;
+    
+    // This method does something important
+    public void importantMethod() {
+        for (String name : names) {
+            String firstName = name.split(" ")[0];
+        
+            if (age > 18) {
+                log.info("Adult: " + firstName);
+            } else {
+                log.info("Minor: " + firstName);
+            }
+    
+            log.debug("Processed: " + firstName);
+        }
+    
+        // Further processing
+    }
+    ```
 - All loops and if-else blocks should use braces, even for single statements.
+- Add parentheses for clarity in complex expressions, even when not needed by the compiler.
+  - Example:
+    ```java
+    if ((a && ((b + 1) > 3)) || ((c < 0) && !d.isEmpty())) {
+        // Do something
+    }
+    ```
 - Use 4 spaces for indentation.
 - Try to limit lines to a maximum of 140 characters.
 - Use camelCase for variable and method names.

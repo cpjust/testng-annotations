@@ -14,7 +14,7 @@ The testng-annotations project contains some extra annotations that are useful w
 <dependency>
     <groupId>io.github.cpjust</groupId>
     <artifactId>testng-annotations</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -28,7 +28,7 @@ The testng-annotations project contains some extra annotations that are useful w
 ```
 io.github.cpjust.testng_annotations.listeners.IncludeOnEnvListener
 io.github.cpjust.testng_annotations.listeners.ExcludeOnEnvListener
-io.github.cpjust.testng_annotations.listeners.ValueSourceListener
+io.github.cpjust.testng_annotations.listeners.annotation_transformers.AllAnnotationTransformers
 ```
 
 3. Use annotations in tests:
@@ -202,31 +202,6 @@ public void testClasses(Class<?> value) {
 }
 ```
 
-#### Listener: ValueSourceListener
-
-This is the listener for TestNG tests that are annotated with `@ValueSource`.
-
-**Registration options: (pick one)**
-- Add to `src/test/resources/META-INF/services/org.testng.ITestNGListener` (RECOMMENDED):
-```
-io.github.cpjust.testng_annotations.listeners.ValueSourceListener
-```
-- or register it in the testng.xml file.  Ex.
-```xml
-<listeners>
-    <listener class-name="io.github.cpjust.testng_annotations.listeners.ValueSourceListener"/>
-</listeners>
-```
-
-**Notes:**
-- If you do not register the listener globally, you must specify the data provider in your @Test annotation:
-  ```java
-  @Test(dataProvider = "valueSourceProvider", dataProviderClass = ValueSourceListener.class)
-  @ValueSource(strings = {"foo", "bar"})
-  public void testWithStrings(String value) { ... }
-  ```
-- If registered globally, you can simply use `@Test` and `@ValueSource` together.
-
 ---
 
 ### @NullSource
@@ -300,7 +275,7 @@ public void testNullAndEmptyList(List<String> list) {
 
 ---
 
-### Combining @NullSource, @EmptySource, @NullAndEmptySource, and @ValueSource
+#### Combining @NullSource, @EmptySource, @NullAndEmptySource, and @ValueSource
 
 You can combine these annotations on a single test method to cover a wide range of input scenarios.  
 The test will be invoked once for each unique value provided by the annotations (duplicates are removed).
@@ -328,6 +303,48 @@ public void testNullEmptyAndFoo(String value) {
 
 ---
 
+### @CsvSource
+Provides a way to parameterize tests with comma-separated (CSV) values, similar to JUnit's CsvSource.
+Each string in the value array represents a row of arguments for the test method. The default delimiter is a comma,
+but you can specify a different delimiter if needed.
+
+**Requirements:**
+- Test method must have as many parameters as there are columns in each CSV row.
+- At least one CSV row must be provided.
+- Values can be quoted using single quotes (by default) to include delimiters or special characters.
+- Whitespace around unquoted values is trimmed.
+- You cannot use a newline '\n' or the quote character as a delimiter.
+
+**Parameters:**
+- `value`: Array of CSV strings, each representing a row of arguments.
+- `delimiter`: (Optional) The delimiter character to use (default is ',').
+- `quoteCharacter`: (Optional) The character used to quote values (default is single quote `'`).
+- `trimWhitespace`: (Optional) Whether to trim whitespace around unquoted values (default is true).
+
+**Examples:**
+
+```java
+@Test
+@CsvSource({"foo,bar", "baz,qux"})
+public void testWithTwoStrings(String a, String b) {
+    // Runs twice: ("foo", "bar") and ("baz", "qux")
+}
+
+@Test
+@CsvSource(value = {"1;2", "3;4"}, delimiter = ';')
+public void testWithIntsAsStrings(String a, String b) {
+    // Runs twice: ("1", "2") and ("3", "4")
+}
+
+@Test
+@CsvSource({"'hello, world',42"})
+public void testWithQuotedComma(String a, String b) {
+    // Runs once: ("hello, world", "42")
+}
+```
+
+---
+
 ## Listeners:
 
 ### ExcludeOnEnvListener
@@ -342,23 +359,56 @@ To register this listener, either define it in the `src/test/resources/META-INF/
 file (by adding `io.github.cpjust.testng_annotations.listeners.IncludeOnEnvListener` to the file)
 or add the `@Listeners({IncludeOnEnvListener.class})` annotation to the test class.
 
-### ValueSourceListener
-This is the listener for TestNG tests that are annotated with `@ValueSource`.
+### CsvSourceListener
+This is the listener for TestNG tests that are annotated with `@CsvSource`.
 To register this listener, either define it in the `src/test/resources/META-INF/services/org.testng.ITestNGListener`
-file (by adding `io.github.cpjust.testng_annotations.listeners.ValueSourceListener` to the file)
+file (by adding `io.github.cpjust.testng_annotations.listeners.annotation_transformers.CsvSourceListener` to the file)
 or add the listener to the testng.xml file.
-
-**Usage notes:**
-- The listener automatically provides the correct data provider for methods annotated with `@ValueSource`.
-- If not registered globally, you must specify `dataProvider = "valueSourceProvider", dataProviderClass = ValueSourceListener.class` in your `@Test` annotation.
-- You cannot register this listener in the `@Listeners` annotation.
 
 ## Notes on annotation implementations:
 After implementing the IAnnotationTransformer & IMethodInterceptor interfaces, getting TestNG to actually run them was tricky.
 - IAnnotationTransformer only executes if it's defined in the `src/test/resources/META-INF/services/org.testng.ITestNGListener` file.
-- IMethodInterceptor executes if it's defined in the `src/test/resources/META-INF/services/org.testng.ITestNGListener` file or 
+- IMethodInterceptor executes if it's defined in the `src/test/resources/META-INF/services/org.testng.ITestNGListener` file or
   if you add the `@Listeners({ExcludeOnEnvListener.class})` annotation to the test class.
 - The `env` system property is only picked up if defined with `-Denv` on the command line or in the `@BeforeSuite`, but not with `@BeforeClass`.
+
+### ValueSourceListener
+This is the listener for TestNG tests that are annotated with `@ValueSource`, `@NullSource`, `@EmptySource` and `@NullAndEmptySource`.
+To register this listener, do one of the following:
+
+**Registration options: (pick one)**
+- Add to `src/test/resources/META-INF/services/org.testng.ITestNGListener` (RECOMMENDED):
+```
+io.github.cpjust.testng_annotations.listeners.annotation_transformers.ValueSourceListener
+```
+- or register it in the testng.xml file.  Ex.
+
+```xml
+
+<listeners>
+    <listener class-name="io.github.cpjust.testng_annotations.listeners.annotation_transformers.ValueSourceListener"/>
+</listeners>
+```
+
+**Usage notes:**
+- The listener automatically provides the correct data provider for methods annotated with `@ValueSource`.
+- If you do not register the listener globally, you must specify the data provider in your @Test annotation:
+  ```java
+  @Test(dataProvider = "valueSourceProvider", dataProviderClass = ValueSourceListener.class)
+  @ValueSource(strings = {"foo", "bar"})
+  public void testWithStrings(String value) { ... }
+  ```
+- If registered globally, you can simply use `@Test` and `@ValueSource` together.
+- You cannot register this listener in the `@Listeners` annotation.
+
+---
+
+### Combining CsvSourceListener and ValueSourceListener
+You cannot register both listeners in the `src/test/resources/META-INF/services/org.testng.ITestNGListener` file.
+To use both, you must register `io.github.cpjust.testng_annotations.listeners.annotation_transformers.AllAnnotationTransformers` in the file instead,
+which will delegate to both listeners.
+
+---
 
 ## Building and deploying:
 To just build, run `mvn clean install`

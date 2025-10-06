@@ -1,4 +1,4 @@
-package io.github.cpjust.testng_annotations.listeners;
+package io.github.cpjust.testng_annotations.listeners.annotation_transformers;
 
 import io.github.cpjust.testng_annotations.annotations.ValueSource;
 import io.github.cpjust.testng_annotations.annotations.NullSource;
@@ -26,11 +26,12 @@ import java.util.function.IntFunction;
 import java.util.function.Supplier;
 
 /**
- * TestNG listener that processes @ValueSource annotations and converts them into data provider parameters.
+ * TestNG listener that processes {@link ValueSource}, {@link NullSource}, {@link EmptySource}, and {@link NullAndEmptySource}
+ * annotations and converts them into data provider parameters.
  */
 @Slf4j
 public class ValueSourceListener implements IAnnotationTransformer {
-    private static final String VALUE_SOURCE_PROVIDER = "valueSourceProvider";
+    public static final String VALUE_SOURCE_PROVIDER = "valueSourceProvider";
 
     /**
      * Enum representing the possible value types in @ValueSource.
@@ -49,7 +50,8 @@ public class ValueSourceListener implements IAnnotationTransformer {
     }
 
     /**
-     * Transforms test methods annotated with {@link ValueSource} to use a data provider.
+     * Transforms test methods annotated with {@link ValueSource}, {@link NullSource}, {@link EmptySource}, and
+     * {@link NullAndEmptySource} to use a data provider.
      *
      * @param annotation      The TestNG annotation being transformed.
      * @param testClass       The test class.
@@ -63,17 +65,28 @@ public class ValueSourceListener implements IAnnotationTransformer {
             return; // Nothing to do if there's no test method.
         }
 
-        if (testMethod.isAnnotationPresent(ValueSource.class) ||
-            testMethod.isAnnotationPresent(NullSource.class) ||
-            testMethod.isAnnotationPresent(EmptySource.class) ||
-            testMethod.isAnnotationPresent(NullAndEmptySource.class)) {
+        if (isValueSourcePresent(testMethod)) {
             annotation.setDataProvider(VALUE_SOURCE_PROVIDER);
             annotation.setDataProviderClass(ValueSourceListener.class);
         }
     }
 
     /**
-     * Provides values for test methods annotated with {@link ValueSource} just like a DataProvider would.
+     * Checks if a method is annotated with {@link ValueSource}, {@link NullSource}, {@link EmptySource}, or {@link NullAndEmptySource}.
+     *
+     * @param method The method to check.
+     * @return true if the method is annotated with any of the supported annotations, false otherwise.
+     */
+    public static boolean isValueSourcePresent(@NonNull Method method) {
+        return method.isAnnotationPresent(ValueSource.class) ||
+               method.isAnnotationPresent(NullSource.class) ||
+               method.isAnnotationPresent(EmptySource.class) ||
+               method.isAnnotationPresent(NullAndEmptySource.class);
+    }
+
+    /**
+     * Provides values for test methods annotated with {@link ValueSource}, {@link NullSource}, {@link EmptySource}, and/or
+     * {@link NullAndEmptySource} just like a DataProvider would.
      *
      * @param method The test method.
      * @return An array of parameter values for the test method.

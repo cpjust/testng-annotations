@@ -1,2 +1,2 @@
+io.github.cpjust.testng_annotations.listeners.annotation_transformers.AllAnnotationTransformers
 io.github.cpjust.testng_annotations.listeners.ExcludeOnEnvListener
-io.github.cpjust.testng_annotations.listeners.ValueSourceListener

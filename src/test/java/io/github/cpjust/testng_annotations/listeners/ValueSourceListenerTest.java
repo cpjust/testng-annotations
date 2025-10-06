@@ -4,6 +4,7 @@ import io.github.cpjust.testng_annotations.annotations.EmptySource;
 import io.github.cpjust.testng_annotations.annotations.NullAndEmptySource;
 import io.github.cpjust.testng_annotations.annotations.NullSource;
 import io.github.cpjust.testng_annotations.annotations.ValueSource;
+import io.github.cpjust.testng_annotations.listeners.annotation_transformers.ValueSourceListener;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -45,7 +46,7 @@ class ValueSourceListenerTest {
         @ValueSource(shorts = {5, 6})
         public void shortValues(short value) {}
 
-        @ValueSource(ints = {1, 2, 3})
+        @ValueSource(ints = {-1, 2, 3})
         public void intValues(int value) {}
 
         @ValueSource(longs = {10L, 20L})
@@ -72,7 +73,7 @@ class ValueSourceListenerTest {
             Arguments.of("booleanValues", boolean.class, new Object[]{true, false}),
             Arguments.of("byteValues", byte.class, new Object[]{(byte)1, (byte)2}),
             Arguments.of("shortValues", short.class, new Object[]{(short)5, (short)6}),
-            Arguments.of("intValues", int.class, new Object[]{1, 2, 3}),
+            Arguments.of("intValues", int.class, new Object[]{-1, 2, 3}),
             Arguments.of("longValues", long.class, new Object[]{10L, 20L}),
             Arguments.of("floatValues", float.class, new Object[]{1.5f, 2.5f}),
             Arguments.of("doubleValues", double.class, new Object[]{1.1, 2.2}),
