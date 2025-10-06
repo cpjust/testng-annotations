@@ -227,6 +227,107 @@ io.github.cpjust.testng_annotations.listeners.ValueSourceListener
   ```
 - If registered globally, you can simply use `@Test` and `@ValueSource` together.
 
+---
+
+### @NullSource
+
+Indicates that the annotated test method should be invoked with a single `null` argument.  
+This is useful for testing how your code handles `null` inputs.  
+Similar to JUnit's `@NullSource`.
+
+**Supported parameter types:** Any single-parameter test method (except primitive types like: int, long, double).
+
+**Example:**
+```java
+@Test
+@NullSource
+public void testNullInput(String value) {
+    assertNull(value);
+}
+```
+
+---
+
+### @EmptySource
+
+Indicates that the annotated test method should be invoked with a single empty argument.  
+This can be an empty String (`""`), empty array, or empty collection (e.g., `List`, `Set`, `Queue`, `Map`).  
+Similar to JUnit's `@EmptySource`.
+
+**Supported parameter types:**
+- `String` (injects `""`)
+- Array types (injects empty array)
+- Collection types (`List`, `Set`, `Queue`, `Map` - injects empty instance)
+
+**Example:**
+```java
+@Test
+@EmptySource
+public void testEmptyString(String value) {
+    assertEquals("", value);
+}
+
+@Test
+@EmptySource
+public void testEmptyList(List<String> list) {
+    assertTrue(list.isEmpty());
+}
+```
+
+---
+
+### @NullAndEmptySource
+
+Indicates that the annotated test method should be invoked twice: once with `null` and once with an empty value (as described in `@EmptySource`).  
+Equivalent to using both `@NullSource` and `@EmptySource` on the same method.  
+Similar to JUnit's `@NullAndEmptySource`.
+
+**Supported parameter types:** Same as `@EmptySource`.
+
+**Example:**
+```java
+@Test
+@NullAndEmptySource
+public void testNullAndEmptyList(List<String> list) {
+    // Runs twice: once with null, once with empty list
+    if (list == null) {
+        // handle null
+    } else {
+        assertTrue(list.isEmpty());
+    }
+}
+```
+
+---
+
+### Combining @NullSource, @EmptySource, @NullAndEmptySource, and @ValueSource
+
+You can combine these annotations on a single test method to cover a wide range of input scenarios.  
+The test will be invoked once for each unique value provided by the annotations (duplicates are removed).
+
+**Example:**
+```java
+@Test
+@NullSource
+@EmptySource
+@ValueSource(strings = {"foo", "bar"})
+public void testAllCases(String value) {
+    // Runs with: null, "", "foo", "bar"
+}
+```
+
+Or, using `@NullAndEmptySource`:
+```java
+@Test
+@NullAndEmptySource
+@ValueSource(strings = {"foo"})
+public void testNullEmptyAndFoo(String value) {
+    // Runs with: null, "", "foo"
+}
+```
+
+---
+
 ## Listeners:
 
 ### ExcludeOnEnvListener

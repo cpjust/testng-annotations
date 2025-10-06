@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.github.cpjust.testng_annotations.TestUtils.getCurrentMethodNameWithParams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
@@ -23,90 +24,90 @@ public class IncludeOnEnvIT extends BaseITEnvListener {
 
     @Test
     public void testWithNoIncludeOnEnv_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @IncludeOnEnv(value = "unmatchEnv")
     @Test
     public void testWithNonIncludedEnv_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = "matchEnv")
     @Test
     public void testWithIncludedEnv_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @IncludeOnEnv(value = "MATCHeNV")
     @Test
     public void testWithIncludedEnv_differentCase_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @IncludeOnEnv(value = {"unmatchEnvironment"}, propertyName = "environment")
     @Test
     public void testWithNonIncludedEnv_customPropertyName_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = {"matchEnvironment"}, propertyName = "environment")
     @Test
     public void testWithIncludedEnv_customPropertyName_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @IncludeOnEnv(value = {"unmatchEnv", "matchEnv"})
     @Test
     public void testWithIncludedAndNonIncludedEnvs_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @IncludeOnEnv(value = {"unmatchEnv"})
     @Test(dataProvider = "testData")
     public void testWithNonIncludedEnv_isNotRun(String foo) {
-        testsRun.add(getCurrentMethodName(foo));
+        testsRun.add(getCurrentMethodNameWithParams(foo));
         failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = {"matchEnv"})
     @Test(dataProvider = "testData")
     public void testWithIncludedEnv_isRun(String foo) {
-        testsRun.add(getCurrentMethodName(foo));
+        testsRun.add(getCurrentMethodNameWithParams(foo));
     }
 
     @IncludeOnEnv(value = {"dev,matchEnv,stage"}, delimiter = ",")
     @Test
     public void testWithIncludedEnv_csvWithDelimiter_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @IncludeOnEnv(value = {"dev matchEnv stage"}, delimiter = " ")
     @Test
     public void testWithIncludedEnv_csvWithSpaceDelimiter_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @IncludeOnEnv(value = {"dev|stage|unmatchEnv"}, delimiter = "|")
     @Test
     public void testWithNonIncludedEnv_csvWithDelimiter_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = {"dev|prod", "stage|unmatchEnv"}, delimiter = "|")
     @Test
     public void testWithNonIncludedEnv_arrayOfCsvWithDelimiter_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = {"dev|prod", "stage|matchEnv|"}, delimiter = "|")
     @Test
     public void testWithCsvIncludedEnv_arrayOfCsvWithDelimiter_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @Test(priority = 2)

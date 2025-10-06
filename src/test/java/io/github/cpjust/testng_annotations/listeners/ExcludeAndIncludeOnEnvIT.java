@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.github.cpjust.testng_annotations.TestUtils.getCurrentMethodNameWithParams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
@@ -18,30 +19,35 @@ import static org.hamcrest.Matchers.not;
 
 @Slf4j
 @Listeners(value = {ExcludeOnEnvListener.class, IncludeOnEnvListener.class})
+@SuppressWarnings(ExcludeAndIncludeOnEnvIT.SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED)
 public class ExcludeAndIncludeOnEnvIT extends BaseITEnvListener {
+    static final String METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS = "java:S4144"; // Suppress "Methods should not have identical implementations" warning
+    static final String SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED = "java:S5976"; // Suppress "Similar tests should be grouped in a single Parameterized test" warning
     private static final List<String> testsRun = new ArrayList<>();
 
     @ExcludeOnEnv(value = "matchEnv")
     @IncludeOnEnv(value = "matchEnv")
     @Test
     public void testBothWithMatchEnv_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
+    @SuppressWarnings(METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS) // Suppress warning since annotations are different.
     @ExcludeOnEnv(value = "unmatchEnv")
     @IncludeOnEnv(value = "unmatchEnv")
     @Test
     public void testBothWithUnmatchEnv_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
+    @SuppressWarnings(METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS) // Suppress warning since annotations are different.
     @ExcludeOnEnv(value = "matchEnv")
     @IncludeOnEnv(value = "unmatchEnv")
     @Test
     public void testExcludeWithMatchEnvAndIncludeWithUnmatchEnv_isNotRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
         failTestThatShouldNotRun();
     }
 
@@ -49,7 +55,7 @@ public class ExcludeAndIncludeOnEnvIT extends BaseITEnvListener {
     @IncludeOnEnv(value = "matchEnv")
     @Test
     public void testExcludeWithUnmatchEnvAndIncludeWithMatchEnv_isRun() {
-        testsRun.add(getCurrentMethodName());
+        testsRun.add(getCurrentMethodNameWithParams());
     }
 
     @Test(priority = 2)
