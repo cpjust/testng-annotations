@@ -7,7 +7,7 @@
     </listeners>
     <test name="ValueSource Tests">
         <classes>
-            <class name="io.github.cpjust.testng_annotations.listeners.ValueSourceIT"/>
+            <class name="io.github.cpjust.testng_annotations.listeners.annotation_transformers.ValueSourceIT"/>
         </classes>
     </test>
 </suite>

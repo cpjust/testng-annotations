@@ -303,6 +303,24 @@ public void testNullEmptyAndFoo(String value) {
 
 ---
 
+## ⚠️ Annotation Combination Restrictions
+
+**You cannot combine `@CsvSource` with any ValueSource annotation (`@ValueSource`, `@NullSource`, `@EmptySource`, or `@NullAndEmptySource`) on the same test method.**
+
+If a test method is annotated with both `@CsvSource` and any ValueSource annotation, an error will occur and the test will not run. This is to prevent confusion, as only one data source can be used per test method.
+
+**Example (not allowed):**
+```java
+@Test
+@CsvSource({"foo,bar"})
+@ValueSource(strings = {"baz"})
+public void testWithBoth(String value) { ... } // This will cause an error
+```
+
+**To fix:** Use only one of the annotations per test method.
+
+---
+
 ### @CsvSource
 Provides a way to parameterize tests with comma-separated (CSV) values, similar to JUnit's CsvSource.
 Each string in the value array represents a row of arguments for the test method. The default delimiter is a comma,

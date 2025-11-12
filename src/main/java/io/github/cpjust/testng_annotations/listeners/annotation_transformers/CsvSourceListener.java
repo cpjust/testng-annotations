@@ -25,7 +25,7 @@ import java.io.IOException;
  */
 @Slf4j
 public class CsvSourceListener implements IAnnotationTransformer {
-    public static final String CSV_SOURCE_PROVIDER = "csvSourceProvider";
+    static final String CSV_SOURCE_PROVIDER = "csvSourceProvider";
 
     /**
      * Transforms test methods annotated with {@link CsvSource} to use a data provider.

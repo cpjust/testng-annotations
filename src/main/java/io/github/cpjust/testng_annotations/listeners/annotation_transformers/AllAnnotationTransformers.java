@@ -37,10 +37,20 @@ public class AllAnnotationTransformers implements IAnnotationTransformer {
             return; // Nothing to do if there's no test method.
         }
 
-        if (CsvSourceListener.isCsvSourcePresent(testMethod)) {
+        boolean hasCsvSource = CsvSourceListener.isCsvSourcePresent(testMethod);
+        boolean hasValueSource = ValueSourceListener.isValueSourcePresent(testMethod);
+
+        if (hasCsvSource && hasValueSource) {
+            throw new IllegalStateException(String.format(
+                    "Cannot combine @CsvSource with any ValueSource annotation on method: %s.%s. "
+                            + "Only one of these annotations may be present.",
+                    testMethod.getDeclaringClass().getName(), testMethod.getName()));
+        }
+
+        if (hasCsvSource) {
             annotation.setDataProvider(CsvSourceListener.CSV_SOURCE_PROVIDER);
             annotation.setDataProviderClass(CsvSourceListener.class);
-        } else if (ValueSourceListener.isValueSourcePresent(testMethod)) {
+        } else if (hasValueSource) {
             annotation.setDataProvider(ValueSourceListener.VALUE_SOURCE_PROVIDER);
             annotation.setDataProviderClass(ValueSourceListener.class);
         }

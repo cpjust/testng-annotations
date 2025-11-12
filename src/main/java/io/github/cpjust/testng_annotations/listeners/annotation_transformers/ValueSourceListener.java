@@ -31,7 +31,7 @@ import java.util.function.Supplier;
  */
 @Slf4j
 public class ValueSourceListener implements IAnnotationTransformer {
-    public static final String VALUE_SOURCE_PROVIDER = "valueSourceProvider";
+    static final String VALUE_SOURCE_PROVIDER = "valueSourceProvider";
 
     /**
      * Enum representing the possible value types in @ValueSource.
