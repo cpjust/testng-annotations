@@ -30,8 +30,9 @@ import java.util.function.Supplier;
  * annotations and converts them into data provider parameters.
  */
 @Slf4j
-public class ValueSourceListener implements IAnnotationTransformer {
+public class ValueSourceListener extends SourceListenerBase implements IAnnotationTransformer {
     static final String VALUE_SOURCE_PROVIDER = "valueSourceProvider";
+    static final Map.Entry<Class<?>, String> VALUE_SOURCE_PROVIDER_CLASS_AND_NAME = Map.entry(ValueSourceListener.class, VALUE_SOURCE_PROVIDER);
 
     /**
      * Enum representing the possible value types in @ValueSource.
@@ -50,6 +51,13 @@ public class ValueSourceListener implements IAnnotationTransformer {
     }
 
     /**
+     * Constructs the listener with the value source data provider.
+     */
+    public ValueSourceListener() {
+        super(List.of(VALUE_SOURCE_PROVIDER_CLASS_AND_NAME));
+    }
+
+    /**
      * Transforms test methods annotated with {@link ValueSource}, {@link NullSource}, {@link EmptySource}, and
      * {@link NullAndEmptySource} to use a data provider.
      *
@@ -65,9 +73,12 @@ public class ValueSourceListener implements IAnnotationTransformer {
             return; // Nothing to do if there's no test method.
         }
 
+        throwIfDataProviderNotAllowed(annotation, testMethod);
+        throwIfTestHasMultipleDataProviders(testMethod);
+
         if (isValueSourcePresent(testMethod)) {
-            annotation.setDataProvider(VALUE_SOURCE_PROVIDER);
-            annotation.setDataProviderClass(ValueSourceListener.class);
+            annotation.setDataProvider(VALUE_SOURCE_PROVIDER_CLASS_AND_NAME.getValue());
+            annotation.setDataProviderClass(VALUE_SOURCE_PROVIDER_CLASS_AND_NAME.getKey());
         }
     }
 

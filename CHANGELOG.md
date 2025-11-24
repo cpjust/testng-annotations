@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.2.0] - 2025-10-31
+## [1.2.0] - 2025-11-23
 
 ### Added
 - `@CsvSource` annotation to provide a source for test values from CSV strings, similar to JUnit 5's `@CsvSource`.

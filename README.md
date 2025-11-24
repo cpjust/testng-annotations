@@ -307,17 +307,24 @@ public void testNullEmptyAndFoo(String value) {
 
 **You cannot combine `@CsvSource` with any ValueSource annotation (`@ValueSource`, `@NullSource`, `@EmptySource`, or `@NullAndEmptySource`) on the same test method.**
 
-If a test method is annotated with both `@CsvSource` and any ValueSource annotation, an error will occur and the test will not run. This is to prevent confusion, as only one data source can be used per test method.
+**You also cannot specify a `dataProvider` in the `@Test` annotation if you use any of `@CsvSource`, `@ValueSource`, `@NullSource`, `@EmptySource`, or `@NullAndEmptySource` on the same method.**
+
+If a test method is annotated with both `@CsvSource` and any ValueSource annotation, or with a `dataProvider` and any of these source annotations, an error will occur and the test will not run.
+This is to prevent confusion, as only one data source can be used per test method.
 
 **Example (not allowed):**
 ```java
+@Test(dataProvider = "intProvider")
+@ValueSource(ints = {1, 2, 3})
+public void testValueSourceAndDataProvider_throwsException(int value) { ... } // This will cause an error
+
 @Test
 @CsvSource({"foo,bar"})
 @ValueSource(strings = {"baz"})
 public void testWithBoth(String value) { ... } // This will cause an error
 ```
 
-**To fix:** Use only one of the annotations per test method.
+**To fix:** Use only one of the annotations or dataProvider per test method.
 
 ---
 

@@ -19,13 +19,22 @@ import de.siegmar.fastcsv.reader.CsvReader;
 import de.siegmar.fastcsv.reader.CsvRecord;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * TestNG listener that processes {@link CsvSource} annotations and converts them into data provider parameters.
  */
 @Slf4j
-public class CsvSourceListener implements IAnnotationTransformer {
+public class CsvSourceListener extends SourceListenerBase implements IAnnotationTransformer {
     static final String CSV_SOURCE_PROVIDER = "csvSourceProvider";
+    static final Map.Entry<Class<?>, String> CSV_SOURCE_PROVIDER_CLASS_AND_NAME = Map.entry(CsvSourceListener.class, CSV_SOURCE_PROVIDER);
+
+    /**
+     * Constructs the listener with the CSV source data provider.
+     */
+    public CsvSourceListener() {
+        super(List.of(CSV_SOURCE_PROVIDER_CLASS_AND_NAME));
+    }
 
     /**
      * Transforms test methods annotated with {@link CsvSource} to use a data provider.
@@ -41,9 +50,12 @@ public class CsvSourceListener implements IAnnotationTransformer {
             return;
         }
 
+        throwIfDataProviderNotAllowed(annotation, testMethod);
+        throwIfTestHasMultipleDataProviders(testMethod);
+
         if (isCsvSourcePresent(testMethod)) {
-            annotation.setDataProvider(CSV_SOURCE_PROVIDER);
-            annotation.setDataProviderClass(CsvSourceListener.class);
+            annotation.setDataProvider(CSV_SOURCE_PROVIDER_CLASS_AND_NAME.getValue());
+            annotation.setDataProviderClass(CSV_SOURCE_PROVIDER_CLASS_AND_NAME.getKey());
         }
     }
 

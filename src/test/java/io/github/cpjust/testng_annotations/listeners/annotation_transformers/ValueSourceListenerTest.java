@@ -18,10 +18,13 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class ValueSourceListenerTest {
+class ValueSourceListenerTest extends SourceListenerTestBase {
     static final String METHODS_SHOULD_NOT_BE_EMPTY = "java:S1186"; // Suppress "Methods should not be empty" warning
     static final String SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED = "java:S5976"; // Suppress "Similar tests should be grouped in a single Parameterized test" warning
     private static final String UNEXPECTED_EXCEPTION_MESSAGE = "Unexpected exception message";
@@ -353,7 +356,7 @@ class ValueSourceListenerTest {
             Object actualValue = values[i];
 
             if (expectedValue == null) {
-                assertEquals(null, actualValue, "Expected null at index " + i);
+                assertNull(actualValue, "Expected null at index " + i);
             } else if (expectedValue instanceof int[] && actualValue instanceof int[]) {
                 assertEquals(((int[]) expectedValue).length, ((int[]) actualValue).length, "Expected empty int[] at index " + i);
             } else {
@@ -361,7 +364,7 @@ class ValueSourceListenerTest {
             }
         }
     }
-    // endregion
+    // endregion NullSource/EmptySource/NullAndEmptySource positive cases
 
     // region NullSource/EmptySource/NullAndEmptySource error cases
     // Dummy test methods for reflection
@@ -413,5 +416,24 @@ class ValueSourceListenerTest {
 
         assertEquals(expectedMessage, ex.getMessage(), "Unexpected exception message");
     }
-    // endregion
+    // endregion NullSource/EmptySource/NullAndEmptySource error cases
+
+    //region Negative tests for conflicting data providers
+    static Stream<Arguments> dataProviderConflictProvider() {
+        return Stream.of(
+                Arguments.of("testValueSourceAndDataProvider_throwsException", int.class),
+                Arguments.of("testValueSourceAndValidDataProviderNameButWrongClass_throwsException", int.class)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("dataProviderConflictProvider")
+    void transform_dataProviderAndSourceAnnotationPresent_throwsException(String methodName, Class<?> paramType) throws NoSuchMethodException {
+        IllegalStateException thrown = transform_dataProviderAndSourceAnnotationPresent_throwsException(methodName, paramType, new ValueSourceListener());
+
+        assertThat(EXCEPTION_MESSAGE_SHOULD_MENTION_DATA_PROVIDER_CONFLICT,
+                thrown.getMessage(),
+                containsString(CANNOT_SPECIFY_A_DATA_PROVIDER_IN_TEST_WHEN_ALSO_USING_CSV_SOURCE_OR_ANY_VALUE_SOURCE_ANNOTATION));
+    }
+    //endregion Negative tests for conflicting data providers
 }

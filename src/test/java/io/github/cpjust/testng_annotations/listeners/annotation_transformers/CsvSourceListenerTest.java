@@ -17,7 +17,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
-class CsvSourceListenerTest {
+class CsvSourceListenerTest extends SourceListenerTestBase {
     static final String METHODS_SHOULD_NOT_BE_EMPTY = "java:S1186"; // Suppress "Methods should not be empty" warning
 
     // Dummy test methods for reflection
@@ -297,7 +297,26 @@ class CsvSourceListenerTest {
 
         listener.transform(annotation, Dummy.class, null, method);
 
-        Mockito.verify(annotation).setDataProvider(CsvSourceListener.CSV_SOURCE_PROVIDER);
-        Mockito.verify(annotation).setDataProviderClass(CsvSourceListener.class);
+        Mockito.verify(annotation).setDataProvider(CsvSourceListener.CSV_SOURCE_PROVIDER_CLASS_AND_NAME.getValue());
+        Mockito.verify(annotation).setDataProviderClass(CsvSourceListener.CSV_SOURCE_PROVIDER_CLASS_AND_NAME.getKey());
     }
+
+    //region Negative tests for conflicting data providers
+    static Stream<Arguments> dataProviderConflictProvider() {
+        return Stream.of(
+                Arguments.of("testCsvSourceAndDataProvider_throwsException", String.class),
+                Arguments.of("testCsvSourceAndValidDataProviderNameButNoClass_throwsException", String.class)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("dataProviderConflictProvider")
+    void transform_dataProviderAndSourceAnnotationPresent_throwsException(String methodName, Class<?> paramType) throws NoSuchMethodException {
+        IllegalStateException thrown = transform_dataProviderAndSourceAnnotationPresent_throwsException(methodName, paramType, new CsvSourceListener());
+
+        assertThat(EXCEPTION_MESSAGE_SHOULD_MENTION_DATA_PROVIDER_CONFLICT,
+                thrown.getMessage(),
+                containsString(CANNOT_SPECIFY_A_DATA_PROVIDER_IN_TEST_WHEN_ALSO_USING_CSV_SOURCE_OR_ANY_VALUE_SOURCE_ANNOTATION));
+    }
+    //endregion Negative tests for conflicting data providers
 }

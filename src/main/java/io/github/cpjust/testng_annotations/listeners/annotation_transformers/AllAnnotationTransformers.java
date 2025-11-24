@@ -10,6 +10,8 @@ import org.testng.annotations.ITestAnnotation;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Map;
 
 /**
  * TestNG annotation transformer that processes all custom annotation transformers like: {@link CsvSource},
@@ -20,7 +22,19 @@ import java.lang.reflect.Method;
  * of the provided annotations. You can do this by adding the fully qualified class name to a file named
  * 'org.testng.IAnnotationTransformer' in the 'META-INF/services' directory of your resources.
  */
-public class AllAnnotationTransformers implements IAnnotationTransformer {
+public class AllAnnotationTransformers extends SourceListenerBase implements IAnnotationTransformer {
+    private static final List<Map.Entry<Class<?>, String>> ALL_DATA_PROVIDERS = List.of(
+            CsvSourceListener.CSV_SOURCE_PROVIDER_CLASS_AND_NAME,
+            ValueSourceListener.VALUE_SOURCE_PROVIDER_CLASS_AND_NAME
+    );
+
+    /**
+     * Constructs the transformer with all supported data providers.
+     */
+    public AllAnnotationTransformers() {
+        super(ALL_DATA_PROVIDERS);
+    }
+
     /**
      * Transforms test methods annotated with {@link CsvSource}, {@link ValueSource}, {@link NullSource},
      * {@link EmptySource}, and {@link NullAndEmptySource} to use a data provider.
@@ -37,22 +51,15 @@ public class AllAnnotationTransformers implements IAnnotationTransformer {
             return; // Nothing to do if there's no test method.
         }
 
-        boolean hasCsvSource = CsvSourceListener.isCsvSourcePresent(testMethod);
-        boolean hasValueSource = ValueSourceListener.isValueSourcePresent(testMethod);
+        throwIfDataProviderNotAllowed(annotation, testMethod);
+        throwIfTestHasMultipleDataProviders(testMethod);
 
-        if (hasCsvSource && hasValueSource) {
-            throw new IllegalStateException(String.format(
-                    "Cannot combine @CsvSource with any ValueSource annotation on method: %s.%s. "
-                            + "Only one of these annotations may be present.",
-                    testMethod.getDeclaringClass().getName(), testMethod.getName()));
-        }
-
-        if (hasCsvSource) {
-            annotation.setDataProvider(CsvSourceListener.CSV_SOURCE_PROVIDER);
-            annotation.setDataProviderClass(CsvSourceListener.class);
-        } else if (hasValueSource) {
-            annotation.setDataProvider(ValueSourceListener.VALUE_SOURCE_PROVIDER);
-            annotation.setDataProviderClass(ValueSourceListener.class);
+        if (CsvSourceListener.isCsvSourcePresent(testMethod)) {
+            annotation.setDataProvider(CsvSourceListener.CSV_SOURCE_PROVIDER_CLASS_AND_NAME.getValue());
+            annotation.setDataProviderClass(CsvSourceListener.CSV_SOURCE_PROVIDER_CLASS_AND_NAME.getKey());
+        } else if (ValueSourceListener.isValueSourcePresent(testMethod)) {
+            annotation.setDataProvider(ValueSourceListener.VALUE_SOURCE_PROVIDER_CLASS_AND_NAME.getValue());
+            annotation.setDataProviderClass(ValueSourceListener.VALUE_SOURCE_PROVIDER_CLASS_AND_NAME.getKey());
         }
     }
 }
