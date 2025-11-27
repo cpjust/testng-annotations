@@ -4,12 +4,12 @@ import io.github.cpjust.testng_annotations.annotations.CsvSource;
 import io.github.cpjust.testng_annotations.annotations.NullAndEmptySource;
 import io.github.cpjust.testng_annotations.annotations.NullSource;
 import io.github.cpjust.testng_annotations.annotations.ValueSource;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.testng.annotations.ITestAnnotation;
-import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -27,27 +27,21 @@ class AllAnnotationTransformersTest extends SourceListenerTestBase {
     @SuppressWarnings(METHODS_SHOULD_NOT_BE_EMPTY)
     public static class PositiveCases {
         @CsvSource({"foo,bar"})
-        @Test
         public void testCsvSource_noException(String value) {}
 
         @ValueSource(ints = {1, 2, 3})
-        @Test
         public void testValueSource_noException(int value) {}
 
-        @Test(dataProvider = CsvSourceListener.CSV_SOURCE_PROVIDER, dataProviderClass = CsvSourceListener.class)
         public void testNoCsvSourceAndValidDataProviderNameAndClass_noException(String value) {}
 
         @CsvSource({"foo,bar"})
-        @Test(dataProvider = CsvSourceListener.CSV_SOURCE_PROVIDER, dataProviderClass = CsvSourceListener.class)
         public void testCsvSourceAndValidDataProviderNameAndClass_noException(String value) {}
 
         @ValueSource(ints = {1, 2, 3})
-        @Test(dataProvider = ValueSourceListener.VALUE_SOURCE_PROVIDER, dataProviderClass = ValueSourceListener.class)
         public void testValueSourceAndValidDataProviderNameAndClass_throwsException(int value) {}
 
         @NullAndEmptySource
         @ValueSource(ints = {1, 2, 3})
-        @Test(dataProvider = ValueSourceListener.VALUE_SOURCE_PROVIDER, dataProviderClass = ValueSourceListener.class)
         public void testNullAndEmptySourceValueSourceAndValidDataProviderNameAndClass_throwsException(int value) {}
     }
 
@@ -141,4 +135,69 @@ class AllAnnotationTransformersTest extends SourceListenerTestBase {
 
     }
     //endregion Negative tests for conflicting data providers
+
+    //region Tests for SourceListenerBase methods
+    // Dummy test class for tests
+    @SuppressWarnings(METHODS_SHOULD_NOT_BE_EMPTY) // Suppress "Methods should not be empty" warning
+    public static class TestClass {
+        @CsvSource({"1,2", "3,4"})
+        public void testMethodWithOnlyCsvSource() {
+        }
+
+        @CsvSource({"1,2", "3,4"})
+        @ValueSource(ints = {1, 2, 3})
+        public void testMethodWithCsvAndValueSource() {
+        }
+
+        @CsvSource({"1,2", "3,4"})
+        @NullSource
+        public void testMethodWithNullAndCsvSource() {
+        }
+    }
+
+    @Test
+    void throwIfTestHasMultipleDataProviders_csvAndValueSource_throwsException() throws NoSuchMethodException {
+        Method method = TestClass.class.getMethod("testMethodWithCsvAndValueSource");
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
+                SourceListenerBase.throwIfTestHasMultipleDataProviders(method));
+        assertThat(exception.getMessage(), containsString("Cannot combine @CsvSource with any ValueSource annotation"));
+    }
+
+    @Test
+    void throwIfTestHasMultipleDataProviders_nullSourceAndCsvSource_throwsException() throws NoSuchMethodException {
+        Method method = TestClass.class.getMethod("testMethodWithNullAndCsvSource");
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
+                SourceListenerBase.throwIfTestHasMultipleDataProviders(method));
+        assertThat(exception.getMessage(), containsString("Cannot combine @CsvSource with any ValueSource annotation"));
+    }
+
+    @Test
+    void throwIfTestHasMultipleDataProviders_onlyCsvSource_doesNotThrow() throws NoSuchMethodException {
+        Method method = TestClass.class.getMethod("testMethodWithOnlyCsvSource");
+        SourceListenerBase.throwIfTestHasMultipleDataProviders(method); // Should not throw
+    }
+
+    @Test
+    void throwIfDataProviderNotAllowed_withDisallowedDataProvider_throwsException() throws NoSuchMethodException {
+        Method method = TestClass.class.getMethod("testMethodWithOnlyCsvSource");
+        ITestAnnotation annotation = Mockito.mock(ITestAnnotation.class);
+        Mockito.when(annotation.getDataProvider()).thenReturn("disallowedProvider");
+
+        AllAnnotationTransformers transformer = new AllAnnotationTransformers();
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
+                transformer.throwIfDataProviderNotAllowed(annotation, method));
+        assertThat(exception.getMessage(), containsString("Cannot specify a dataProvider in @Test when also using @CsvSource"));
+    }
+
+    @Test
+    void throwIfDataProviderNotAllowed_withAllowedDataProvider_doesNotThrow() throws NoSuchMethodException {
+        Method method = TestClass.class.getMethod("testMethodWithOnlyCsvSource");
+        ITestAnnotation annotation = Mockito.mock(ITestAnnotation.class);
+        Mockito.when(annotation.getDataProvider()).thenReturn(CsvSourceListener.CSV_SOURCE_PROVIDER);
+        Mockito.when(annotation.getDataProviderClass()).thenAnswer(invocation -> CsvSourceListener.class);
+
+        AllAnnotationTransformers transformer = new AllAnnotationTransformers();
+        transformer.throwIfDataProviderNotAllowed(annotation, method); // Should not throw
+    }
+    //endregion Tests for SourceListenerBase methods
 }
