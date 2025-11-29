@@ -10,6 +10,11 @@ public class CsvSourceIT {
     private static final String UNEXPECTED_PARAMETER_VALUES_S_S = "Unexpected parameter values: %s, %s";
 
     @Test
+    public void testNoCsvSource() {
+        Assert.assertTrue(true, "This test should run without @CsvSource");
+    }
+
+    @Test
     @CsvSource({"foo,bar", "baz,qux"})
     public void testTwoStrings(String a, String b) {
         Assert.assertNotNull(a, "First parameter should not be null");

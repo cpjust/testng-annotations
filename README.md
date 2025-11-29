@@ -303,31 +303,6 @@ public void testNullEmptyAndFoo(String value) {
 
 ---
 
-## ⚠️ Annotation Combination Restrictions
-
-**You cannot combine `@CsvSource` with any ValueSource annotation (`@ValueSource`, `@NullSource`, `@EmptySource`, or `@NullAndEmptySource`) on the same test method.**
-
-**You also cannot specify a `dataProvider` in the `@Test` annotation if you use any of `@CsvSource`, `@ValueSource`, `@NullSource`, `@EmptySource`, or `@NullAndEmptySource` on the same method.**
-
-If a test method is annotated with both `@CsvSource` and any ValueSource annotation, or with a `dataProvider` and any of these source annotations, an error will occur and the test will not run.
-This is to prevent confusion, as only one data source can be used per test method.
-
-**Example (not allowed):**
-```java
-@Test(dataProvider = "intProvider")
-@ValueSource(ints = {1, 2, 3})
-public void testValueSourceAndDataProvider_throwsException(int value) { ... } // This will cause an error
-
-@Test
-@CsvSource({"foo,bar"})
-@ValueSource(strings = {"baz"})
-public void testWithBoth(String value) { ... } // This will cause an error
-```
-
-**To fix:** Use only one of the annotations or dataProvider per test method.
-
----
-
 ### @CsvSource
 Provides a way to parameterize tests with comma-separated (CSV) values, similar to JUnit's CsvSource.
 Each string in the value array represents a row of arguments for the test method. The default delimiter is a comma,
@@ -336,9 +311,9 @@ but you can specify a different delimiter if needed.
 **Requirements:**
 - Test method must have as many parameters as there are columns in each CSV row.
 - At least one CSV row must be provided.
-- Values can be quoted using single quotes (by default) to include delimiters or special characters.
+- Values can be quoted using single quotes (by default) to include delimiters or special characters as part of the value.
 - Whitespace around unquoted values is trimmed.
-- You cannot use a newline '\n' or the quote character as a delimiter.
+- You cannot use a newline '\n', carriage return '\r' or the quote character as a delimiter.
 
 **Parameters:**
 - `value`: Array of CSV strings, each representing a row of arguments.
@@ -367,6 +342,31 @@ public void testWithQuotedComma(String a, String b) {
     // Runs once: ("hello, world", "42")
 }
 ```
+
+---
+
+## ⚠️ Annotation Combination Restrictions
+
+**You cannot combine `@CsvSource` with any ValueSource annotation (`@ValueSource`, `@NullSource`, `@EmptySource`, or `@NullAndEmptySource`) on the same test method.**
+
+**You also cannot specify a `dataProvider` in the `@Test` annotation if you use any of `@CsvSource`, `@ValueSource`, `@NullSource`, `@EmptySource`, or `@NullAndEmptySource` on the same method.**
+
+If a test method is annotated with both `@CsvSource` and any ValueSource annotation, or with a `dataProvider` and any of these source annotations, an error will occur and the test will not run.
+This is to prevent confusion, as only one data source can be used per test method.
+
+**Example (not allowed):**
+```java
+@Test(dataProvider = "intProvider")
+@ValueSource(ints = {1, 2, 3})
+public void testValueSourceAndDataProvider_throwsException(int value) { ... } // This will cause an error
+
+@Test
+@CsvSource({"foo,bar"})
+@ValueSource(strings = {"baz"})
+public void testWithBoth(String value) { ... } // This will cause an error
+```
+
+**To fix:** Use only one of the annotations or dataProvider per test method.
 
 ---
 
