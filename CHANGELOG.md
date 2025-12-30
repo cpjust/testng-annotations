@@ -6,7 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.1.1] - 2025-10-03
+## [1.2.0] - 2025-11-28
+
+### Added
+- `@CsvSource` annotation to provide a source for test values from CSV strings, similar to JUnit 5's `@CsvSource`.
+- `CsvSourceListener` to handle the `@CsvSource` annotation and provide test values for parameterized tests.
+
+### Changed
+- Moved ValueSourceListener to a `io.github.cpjust.testng_annotations.listeners.annotation_transformers` package to group it with other annotation transformers.
+
+## [1.1.1] - 2025-10-05
 
 ### Added
 - `@NullSource` annotation to provide a null value as a source for test values, similar to JUnit 5's `@NullSource`.

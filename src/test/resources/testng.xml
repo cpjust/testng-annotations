@@ -3,11 +3,11 @@
 <!-- This file isn't needed to run the tests in this project, it's just an example of how you could configure the listeners in a testng.xml file. -->
 <suite name="Integration Test Suite">
     <listeners>
-        <listener class-name="io.github.cpjust.testng_annotations.listeners.ValueSourceListener"/>
+        <listener class-name="io.github.cpjust.testng_annotations.listeners.annotation_transformers.ValueSourceListener"/>
     </listeners>
     <test name="ValueSource Tests">
         <classes>
-            <class name="io.github.cpjust.testng_annotations.listeners.ValueSourceIT"/>
+            <class name="io.github.cpjust.testng_annotations.listeners.annotation_transformers.ValueSourceIT"/>
         </classes>
     </test>
 </suite>

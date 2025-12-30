@@ -6,7 +6,7 @@
 
     <groupId>io.github.cpjust</groupId>
     <artifactId>testng-annotations</artifactId>
-    <version>1.1.1</version>
+    <version>1.2.0</version>
     <name>testng-annotations</name>
     <description>Contains some extra annotations that are useful when running tests in TestNG.</description>
     <url>https://github.com/cpjust/testng-annotations</url>
@@ -33,6 +33,7 @@
         <maven.compiler.target>11</maven.compiler.target>
 
         <org.projectlombok.version>1.18.38</org.projectlombok.version>
+        <de.siegmar.fastcsv.version>3.7.0</de.siegmar.fastcsv.version>
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <org.apache.logging.log4j.version>2.24.3</org.apache.logging.log4j.version>
         <org.testng.version>7.11.0</org.testng.version>
@@ -54,6 +55,12 @@
             <artifactId>lombok</artifactId>
             <version>${org.projectlombok.version}</version>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>de.siegmar</groupId>
+            <artifactId>fastcsv</artifactId>
+            <version>${de.siegmar.fastcsv.version}</version>
         </dependency>
 
         <!-- SLF4J and Log4j 2 dependencies -->
