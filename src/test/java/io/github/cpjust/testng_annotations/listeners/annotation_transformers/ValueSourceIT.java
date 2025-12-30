@@ -38,7 +38,7 @@ public class ValueSourceIT {
 
     // NOTE: We only need to provide the dataProvider and dataProviderClass in the @Test annotation if we don't register the ValueSourceListener
     // in the resources/META-INF/services/org.testng.ITestNGListener file.
-    @Test(dataProvider = "valueSourceProvider", dataProviderClass = ValueSourceListener.class)
+    @Test(dataProvider = ValueSourceListener.VALUE_SOURCE_PROVIDER, dataProviderClass = ValueSourceListener.class)
     @ValueSource(strings = {"test1", "test2", "test3"})
     public void testStringValues(String value) {
         log.info("Testing string value: {}", value);

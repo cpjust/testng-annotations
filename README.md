@@ -14,7 +14,7 @@ The testng-annotations project contains some extra annotations that are useful w
 <dependency>
     <groupId>io.github.cpjust</groupId>
     <artifactId>testng-annotations</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -345,6 +345,37 @@ public void testWithQuotedComma(String a, String b) {
 
 ---
 
+### EnumSource Annotation
+
+The `@EnumSource` annotation allows you to provide enum constants as parameters to your test methods. This is useful for parameterized tests where you want to test all or specific constants of an enum.
+
+#### Example Usage
+
+```java
+@Listeners(EnumSourceListener.class)
+public class MyEnumTests {
+
+    private enum MyEnum {
+        CONSTANT_ONE,
+        CONSTANT_TWO,
+        CONSTANT_THREE
+    }
+
+    @Test
+    @EnumSource(MyEnum.class)
+    public void testAllEnumConstants(MyEnum value) {
+        // Test logic here
+    }
+
+    @Test
+    @EnumSource(value = MyEnum.class, names = {"CONSTANT_ONE", "CONSTANT_TWO"})
+    public void testSpecificEnumConstants(MyEnum value) {
+        // Test logic here
+    }
+}
+```
+---
+
 ## ⚠️ Annotation Combination Restrictions
 
 **You cannot combine `@CsvSource` with any ValueSource annotation (`@ValueSource`, `@NullSource`, `@EmptySource`, or `@NullAndEmptySource`) on the same test method.**
@@ -509,3 +540,4 @@ jobs:
     steps:
       - run: mvn test -Denv=$ENV
 ```
+

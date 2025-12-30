@@ -328,7 +328,7 @@ public class ValueSourceListener extends SourceListenerBase implements IAnnotati
         int length = Array.getLength(arr);
         Object[] result = arrayConstructor.apply(length);
 
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < length; ++i) {
             result[i] = getter.get(arr, i);
         }
 

@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,11 +31,15 @@ import java.util.Set;
 public class NullAndEmptySourceIT {
     private final Map<String, List<Object>> testNamesAndValues = new HashMap<>();
     private final Map<String, List<Object>> testNamesAndExpectedValues = Map.of(
+            "testNullAndEmptySource_stringValue_injectsNullAndEmptyString", Arrays.asList(null, ""),
+            "testNullAndEmptySource_listValue_injectsNullAndEmptyList", Arrays.asList(null, List.of()),
             "testNullSourceAndEmptySourceAndValueSource_stringValue_injectsExpectedStringValues", Arrays.asList(null, "", "value1", "value2"),
             "testNullAndEmptySourceAndValueSource_stringValue_injectsExpectedStringValues", Arrays.asList(null, "", "value1", "value2"),
             "testNullSourceAndEmptySourceAndNullAndEmptySourceAndValueSource_stringValue_noDuplicatesReturned", Arrays.asList(null, "", "value1"),
             "testNullSourceAndEmptySource_intArray_injectsExpectedIntArrays", Arrays.asList(null, new int[]{}),
-            "testNullSourceAndEmptySource_listValue_injectsNullAndEmptyList", Arrays.asList(null, List.of())
+            "testNullSourceAndEmptySource_listValue_injectsNullAndEmptyList", Arrays.asList(null, List.of()),
+            "testNullSource_stringValue_injectsNull", Collections.singletonList(null),
+            "testNullSource_listValue_injectsNull", Collections.singletonList(null)
     );
 
     //region EmptySource
@@ -73,7 +78,13 @@ public class NullAndEmptySourceIT {
     @Test
     @NullSource
     public void testNullSource_stringValue_injectsNull(String value) {
-        assertThat("Parameter should be null", value, nullValue());
+        validateTestNameAndValue(getCurrentMethodName(), value);
+    }
+
+    @Test
+    @NullSource
+    public void testNullSource_listValue_injectsNull(List<Integer> value) {
+        validateTestNameAndValue(getCurrentMethodName(), value);
     }
     //endregion NullSource
 
@@ -81,23 +92,13 @@ public class NullAndEmptySourceIT {
     @Test
     @NullAndEmptySource
     public void testNullAndEmptySource_stringValue_injectsNullAndEmptyString(String value) {
-        // This test will be run twice: once with null, once with ""
-        if (value == null) {
-            assertThat("Parameter should be null", value, nullValue());
-        } else {
-            assertThat("Parameter should be empty string", value, is(""));
-        }
+        validateTestNameAndValue(getCurrentMethodName(), value);
     }
 
     @Test
     @NullAndEmptySource
     public void testNullAndEmptySource_listValue_injectsNullAndEmptyList(List<String> list) {
-        // This test will be run twice: once with null, once with empty list
-        if (list == null) {
-            assertThat("Parameter should be null", list, nullValue());
-        } else {
-            assertThat("Parameter should be empty list", list, empty());
-        }
+        validateTestNameAndValue(getCurrentMethodName(), list);
     }
     //endregion NullAndEmptySource
 
@@ -160,7 +161,8 @@ public class NullAndEmptySourceIT {
         testNamesAndExpectedValues.forEach((testName, expectedValues) -> {
             assertThat(String.format("Test '%s' was not run!", testName), testNamesAndValues, hasKey(testName));
             List<Object> actualValues = testNamesAndValues.get(testName);
-            assertThat(String.format("Test '%s' was not run with all expected values!", testName), actualValues, containsInAnyOrder(expectedValues.toArray()));
+            assertThat(String.format("Test '%s' was not run with all expected values!", testName), actualValues,
+                    containsInAnyOrder(expectedValues.toArray()));
         });
     }
     //endregion multiple annotations
@@ -173,6 +175,9 @@ public class NullAndEmptySourceIT {
      */
     private void validateTestNameAndValue(@NonNull String testName, Object value) {
         List<Object> expectedValues = testNamesAndExpectedValues.get(testName);
+        assertThat(String.format("No expected values found for test: '%s'.%n", testName) +
+                "This is probably because a test was added or renamed without updating testNamesAndExpectedValues",
+                expectedValues, is(not(nullValue())));
 
         testNamesAndValues.putIfAbsent(testName, new ArrayList<>());
         List<Object> values = testNamesAndValues.get(testName);
@@ -182,7 +187,8 @@ public class NullAndEmptySourceIT {
         assertThat(String.format("Test '%s' was run with unexpected value: %s", testName, value), value, in(expectedValues));
 
         // Verify that the value was not already used
-        assertThat(String.format("Test '%s' was run more than once with the same value: %s", testName, value), values, not(containsInAnyOrder(value)));
+        assertThat(String.format("Test '%s' was run more than once with the same value: %s", testName, value), values,
+                not(containsInAnyOrder(value)));
 
         log.info("Adding value '{}' for test '{}'", value, testName);
         values.add(value);
