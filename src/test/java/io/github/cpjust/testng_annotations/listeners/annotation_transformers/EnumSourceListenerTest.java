@@ -128,6 +128,43 @@ class EnumSourceListenerTest extends SourceListenerTestBase {
                 "enumSourceProvider() should throw an IllegalStateException when method has more than one parameter.");
         assertEquals("Method 'tooManyParams' should have 1 parameter, but it has 2", ex.getMessage(), WRONG_EXCEPTION_MESSAGE);
     }
+
+    // Additional negative tests added to cover strict-typing behavior and empty enum edge case
+    @SuppressWarnings(METHODS_SHOULD_NOT_BE_EMPTY) // Empty methods are intentional for test purposes
+    public static class AdditionalNegativeCases {
+        public enum EmptyEnum {}
+
+        @EnumSource(EmptyEnum.class)
+        public void emptyEnumCase(EmptyEnum value) {}
+
+        @EnumSource(TestEnum.class)
+        public void paramAsEnum(java.lang.Enum<?> value) {}
+    }
+
+    @Test
+    void enumSourceProvider_emptyEnum_throwsException() throws Exception {
+        // Arrange
+        Method testMethod = AdditionalNegativeCases.class.getMethod("emptyEnumCase", AdditionalNegativeCases.EmptyEnum.class);
+
+        // Act & Assert
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                EnumSourceListener.enumSourceProvider(testMethod),
+                "enumSourceProvider() should throw an IllegalStateException when the enum has no constants.");
+        assertEquals("No matching enum constants found for method: emptyEnumCase", ex.getMessage(), WRONG_EXCEPTION_MESSAGE);
+    }
+
+    @Test
+    void enumSourceProvider_paramAsEnum_supertypeNotAllowed_throwsException() throws Exception {
+        // Arrange
+        Method testMethod = AdditionalNegativeCases.class.getMethod("paramAsEnum", java.lang.Enum.class);
+
+        // Act & Assert
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                EnumSourceListener.enumSourceProvider(testMethod),
+                "enumSourceProvider() should throw when method parameter type is a supertype (Enum) under strict typing policy.");
+        assertEquals("Enum class TestEnum is not compatible with parameter type Enum in method: paramAsEnum",
+                ex.getMessage(), WRONG_EXCEPTION_MESSAGE);
+    }
     // region Negative test cases
 
     //region Negative tests for conflicting data providers

@@ -12,6 +12,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -75,8 +76,9 @@ public class EnumSourceListener extends SourceListenerBase implements IAnnotatio
         Enum<?>[] constants = validateMethodAndAnnotation(method, enumSource);
 
         String[] names = enumSource.names();
+        Set<String> nameSet = (names.length == 0) ? null : Arrays.stream(names).collect(Collectors.toSet());
         List<Enum<?>> filteredConstants = Arrays.stream(constants)
-                .filter(constant -> names.length == 0 || Arrays.asList(names).contains(constant.name()))
+                .filter(constant -> (nameSet == null) || nameSet.contains(constant.name()))
                 .collect(Collectors.toList());
 
         if (filteredConstants.isEmpty()) {
@@ -96,6 +98,7 @@ public class EnumSourceListener extends SourceListenerBase implements IAnnotatio
      * @return The enum constants of the specified enum class.
      */
     private static Enum<?>[] validateMethodAndAnnotation(Method method, EnumSource enumSource) {
+        // Verify that the annotation is present and get the enum class and constants.
         if (enumSource == null) {
             throw new IllegalStateException("No @EnumSource annotation found on method: " + method.getName());
         }
@@ -107,13 +110,14 @@ public class EnumSourceListener extends SourceListenerBase implements IAnnotatio
             throw new IllegalStateException("Provided class is not an enum: " + enumClass.getName());
         }
 
+        // Validate the method has exactly one parameter of the correct enum type.
         Class<?>[] methodParamClasses = method.getParameterTypes();
 
         if (methodParamClasses.length != 1) {
             throw new IllegalStateException(String.format("Method '%s' should have 1 parameter, but it has %d", method.getName(), methodParamClasses.length));
         }
 
-        if (!enumClass.isAssignableFrom(methodParamClasses[0]) || !methodParamClasses[0].isAssignableFrom(enumClass)) {
+        if (enumClass != methodParamClasses[0]) {
             throw new IllegalStateException(String.format(
                     "Enum class %s is not compatible with parameter type %s in method: %s",
                     enumClass.getSimpleName(), method.getParameterTypes()[0].getSimpleName(), method.getName()));

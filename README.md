@@ -374,6 +374,9 @@ public class MyEnumTests {
     }
 }
 ```
+
+NOTE: The test method parameter must be declared with the exact enum type specified in `@EnumSource` (for example, `MyEnum`). Supertypes such as `java.lang.Enum` or `java.lang.Object` are not supported.
+
 ---
 
 ## ⚠️ Annotation Combination Restrictions
@@ -540,4 +543,3 @@ jobs:
     steps:
       - run: mvn test -Denv=$ENV
 ```
-

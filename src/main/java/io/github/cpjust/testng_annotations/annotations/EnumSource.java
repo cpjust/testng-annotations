@@ -1,5 +1,6 @@
 package io.github.cpjust.testng_annotations.annotations;
 
+import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -7,7 +8,12 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation to provide enum constants as parameters to a test method.
+ *
+ * <p>NOTE: The test method parameter must be declared with the exact enum type
+ * specified in this annotation (for example, {@code MyEnum}). Supertypes such as
+ * {@code java.lang.Enum} or {@code Object} are not supported.</p>
  */
+@Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface EnumSource {
@@ -22,6 +28,7 @@ public @interface EnumSource {
 
     /**
      * Specific constants to include. If empty, all constants are included.
+     * NOTE: The names must match the enum constant names exactly, and are case-sensitive.
      *
      * @return The specific constants to include.
      */
