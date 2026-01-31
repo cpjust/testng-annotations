@@ -29,6 +29,15 @@ class EnumSourceListenerTest extends SourceListenerTestBase {
 
         @EnumSource(value = TestEnum.class, names = {"VALUE_ONE", "VALUE_TWO"})
         public void specificConstants(TestEnum testEnum) {}
+
+        @EnumSource(value = TestEnum.class, names = {"VALUE_ONE"}, mode = EnumSource.Mode.EXCLUDE)
+        public void excludeMode(TestEnum testEnum) {}
+
+        @EnumSource(value = TestEnum.class, names = {"^VALUE_O[A-Z]{2}$", "^VALUE_T[A-Z]{2}$"}, mode = EnumSource.Mode.MATCH_ANY)
+        public void matchAnyMode(TestEnum testEnum) {}
+
+        @EnumSource(value = TestEnum.class, names = {"VALUE_.*", ".*_THREE"}, mode = EnumSource.Mode.MATCH_ALL)
+        public void matchAllMode(TestEnum testEnum) {}
     }
 
     @Test
@@ -57,6 +66,48 @@ class EnumSourceListenerTest extends SourceListenerTestBase {
         assertThat("EnumSourceListener.enumSourceProvider() returned the wrong enum values!",
                 Arrays.stream(result).map(arr -> arr[0]).collect(Collectors.toList()),
                 contains(TestEnum.VALUE_ONE, TestEnum.VALUE_TWO));
+    }
+
+    @Test
+    void enumSourceProvider_excludeMode_excludesSpecifiedValue() throws Exception {
+        // Arrange
+        Method testMethod = PositiveCases.class.getMethod("excludeMode", TestEnum.class);
+
+        // Act
+        Object[][] result = EnumSourceListener.enumSourceProvider(testMethod);
+
+        // Assert
+        assertThat("EnumSourceListener.exclude mode did not exclude the specified value",
+                Arrays.stream(result).map(arr -> arr[0]).collect(Collectors.toList()),
+                contains(TestEnum.VALUE_TWO, TestEnum.VALUE_THREE));
+    }
+
+    @Test
+    void enumSourceProvider_matchAnyMode_matchesRegex() throws Exception {
+        // Arrange
+        Method testMethod = PositiveCases.class.getMethod("matchAnyMode", TestEnum.class);
+
+        // Act
+        Object[][] result = EnumSourceListener.enumSourceProvider(testMethod);
+
+        // Assert
+        assertThat("EnumSourceListener.matchAny did not match expected values",
+                Arrays.stream(result).map(arr -> arr[0]).collect(Collectors.toList()),
+                contains(TestEnum.VALUE_ONE, TestEnum.VALUE_TWO));
+    }
+
+    @Test
+    void enumSourceProvider_matchAllMode_matchesAllRegexes() throws Exception {
+        // Arrange
+        Method testMethod = PositiveCases.class.getMethod("matchAllMode", TestEnum.class);
+
+        // Act
+        Object[][] result = EnumSourceListener.enumSourceProvider(testMethod);
+
+        // Assert
+        assertThat("EnumSourceListener.matchAll did not match expected values",
+                Arrays.stream(result).map(arr -> arr[0]).collect(Collectors.toList()),
+                contains(TestEnum.VALUE_THREE));
     }
     // endregion Positive test cases
 
@@ -139,6 +190,9 @@ class EnumSourceListenerTest extends SourceListenerTestBase {
 
         @EnumSource(TestEnum.class)
         public void paramAsEnum(java.lang.Enum<?> value) {}
+
+        @EnumSource(value = TestEnum.class, names = {"*INVALID["}, mode = EnumSource.Mode.MATCH_ANY)
+        public void invalidRegex(TestEnum value) {}
     }
 
     @Test
@@ -164,6 +218,19 @@ class EnumSourceListenerTest extends SourceListenerTestBase {
                 "enumSourceProvider() should throw when method parameter type is a supertype (Enum) under strict typing policy.");
         assertEquals("Enum class TestEnum is not compatible with parameter type Enum in method: paramAsEnum",
                 ex.getMessage(), WRONG_EXCEPTION_MESSAGE);
+    }
+
+    @Test
+    void enumSourceProvider_invalidRegex_throwsIllegalArgumentException() throws Exception {
+        // Arrange
+        Method testMethod = AdditionalNegativeCases.class.getMethod("invalidRegex", TestEnum.class);
+
+        // Act & Assert
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                EnumSourceListener.enumSourceProvider(testMethod),
+                "enumSourceProvider() should throw an IllegalArgumentException when an invalid regex is provided in names().");
+        assertThat("Exception message should mention invalid regular expression",
+                ex.getMessage(), containsString("Invalid regular expression in EnumSource.names()"));
     }
     // region Negative test cases
 

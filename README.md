@@ -377,6 +377,48 @@ public class MyEnumTests {
 
 NOTE: The test method parameter must be declared with the exact enum type specified in `@EnumSource` (for example, `MyEnum`). Supertypes such as `java.lang.Enum` or `java.lang.Object` are not supported.
 
+#### Modes: `mode()` (INCLUDE | EXCLUDE | MATCH_ANY | MATCH_ALL)
+
+`@EnumSource` supports an optional `mode()` property that changes how the `names()` values are interpreted. The default is `Mode.INCLUDE` which preserves the previous behavior.
+
+- `INCLUDE` (default): Treat `names()` as exact constant names to include. If `names()` is empty then all enum constants are included.
+
+  Example (include two specific constants):
+  ```java
+  @EnumSource(value = MyEnum.class, names = {"CONSTANT_ONE", "CONSTANT_TWO"}, mode = EnumSource.Mode.INCLUDE)
+  public void includeConstants(MyEnum value) { }
+  ```
+
+- `EXCLUDE`: Treat `names()` as exact constant names to exclude. If `names()` is empty no constants are excluded (i.e., all constants are provided).
+
+  Example (exclude one constant):
+  ```java
+  @EnumSource(value = MyEnum.class, names = {"CONSTANT_ONE"}, mode = EnumSource.Mode.EXCLUDE)
+  public void excludeConstants(MyEnum value) { }
+  ```
+
+- `MATCH_ANY`: Treat each entry in `names()` as a Java regular expression. A constant is included if at least one pattern matches its name. If `names()` is empty all constants are included.
+
+  Example (match any constant whose name starts with "CONSTANT_O" or "CONSTANT_T" followed by any two characters):
+  ```java
+  @EnumSource(value = MyEnum.class, names = {"^CONSTANT_O??$", "^CONSTANT_T??$"}, mode = EnumSource.Mode.MATCH_ANY)
+  public void matchAnyRegex(MyEnum value) { }
+  ```
+
+- `MATCH_ALL`: Treat each entry in `names()` as a Java regular expression. A constant is included only if every pattern matches its name. If `names()` is empty all constants are included.
+
+  Example (a name must match both patterns):
+  ```java
+  @EnumSource(value = MyEnum.class, names = {"CONSTANT_.*", ".*_THREE"}, mode = EnumSource.Mode.MATCH_ALL)
+  public void matchAllRegex(MyEnum value) { }
+  ```
+
+Notes about regex and behavior:
+- `MATCH_ANY` and `MATCH_ALL` use Java regular expressions (`java.util.regex.Pattern`). The matching implementation uses `Pattern.matcher(name).find()` which allows substring matches; if you need a full-match use `^` and `$` anchors in your pattern.
+- Regular expression evaluation is case-sensitive by default (use `(?i)` if you need case-insensitive matching).
+- If a provided pattern is syntactically invalid a `IllegalArgumentException` is thrown when the data provider is created.
+- Empty `names()` is treated as "no filtering" for all modes (INCLUDE => include all; EXCLUDE => exclude none; MATCH_* => include all).
+
 ---
 
 ## ⚠️ Annotation Combination Restrictions

@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 /**
@@ -73,21 +75,105 @@ public class EnumSourceListener extends SourceListenerBase implements IAnnotatio
     public static Object[][] enumSourceProvider(@NonNull Method method) {
         EnumSource enumSource = method.getAnnotation(EnumSource.class);
 
-        Enum<?>[] constants = validateMethodAndAnnotation(method, enumSource);
+        Enum<?>[] allEnumConstants = validateMethodAndAnnotation(method, enumSource);
 
         String[] names = enumSource.names();
-        Set<String> nameSet = (names.length == 0) ? null : Arrays.stream(names).collect(Collectors.toSet());
-        List<Enum<?>> filteredConstants = Arrays.stream(constants)
-                .filter(constant -> (nameSet == null) || nameSet.contains(constant.name()))
-                .collect(Collectors.toList());
+        EnumSource.Mode mode = enumSource.mode();
+        List<Enum<?>> filteredConstants;
+
+        // If no names are specified, include all enum constants.
+        if (names.length == 0) {
+            filteredConstants = Arrays.stream(allEnumConstants)
+                    .collect(Collectors.toList());
+        } else {
+            filteredConstants = filterEnumConstants(mode, names, allEnumConstants);
+        }
 
         if (filteredConstants.isEmpty()) {
             throw new IllegalStateException("No matching enum constants found for method: " + method.getName());
         }
 
+        // Convert List to Object[][] for data provider.
         return filteredConstants.stream()
                 .map(constant -> new Object[]{ constant })
                 .toArray(Object[][]::new);
+    }
+
+    /**
+     * Filters enum constants based on the specified mode and names.
+     *
+     * @param mode              The filtering mode.
+     * @param names             The names or patterns to filter by.
+     * @param allEnumConstants  All enum constants of the enum class.
+     * @return A list of filtered enum constants.
+     */
+    private static List<Enum<?>> filterEnumConstants(EnumSource.Mode mode, String[] names, Enum<?>[] allEnumConstants) {
+        List<Enum<?>> filteredConstants;
+
+        switch (mode) {
+            case MATCH_ANY: {
+                final Pattern[] patterns = compilePatterns(names);
+                filteredConstants = Arrays.stream(allEnumConstants)
+                        .filter(constant -> {
+                            for (Pattern p : patterns) {
+                                if (p.matcher(constant.name()).find()) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        })
+                        .collect(Collectors.toList());
+                break;
+            }
+            case MATCH_ALL: {
+                final Pattern[] patterns = compilePatterns(names);
+                filteredConstants = Arrays.stream(allEnumConstants)
+                        .filter(constant -> {
+                            for (Pattern p : patterns) {
+                                if (!p.matcher(constant.name()).find()) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        })
+                        .collect(Collectors.toList());
+                break;
+            }
+            case EXCLUDE: {
+                Set<String> namesToFilter = Arrays.stream(names).collect(Collectors.toSet());
+                filteredConstants = Arrays.stream(allEnumConstants)
+                        .filter(constant -> !namesToFilter.contains(constant.name()))
+                        .collect(Collectors.toList());
+                break;
+            }
+            case INCLUDE:
+            default: {
+                Set<String> namesToFilter = Arrays.stream(names).collect(Collectors.toSet());
+                filteredConstants = Arrays.stream(allEnumConstants)
+                        .filter(constant -> namesToFilter.contains(constant.name()))
+                        .collect(Collectors.toList());
+                break;
+            }
+        }
+
+        return filteredConstants;
+    }
+
+    /**
+     * Compiles an array of string regex patterns into Pattern objects.
+     *
+     * @param names The array of string regex patterns.
+     * @return An array of compiled Pattern objects.
+     * @throws IllegalArgumentException If any of the patterns are invalid.
+     */
+    private static Pattern[] compilePatterns(String[] names) {
+        try {
+            return Arrays.stream(names)
+                    .map(Pattern::compile)
+                    .toArray(Pattern[]::new);
+        } catch (PatternSyntaxException ex) {
+            throw new IllegalArgumentException("Invalid regular expression in EnumSource.names(): " + ex.getMessage(), ex);
+        }
     }
 
     /**
