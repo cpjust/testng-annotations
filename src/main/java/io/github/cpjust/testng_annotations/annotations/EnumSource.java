@@ -61,6 +61,4 @@ public @interface EnumSource {
         /** Treat names as regular expressions; include constant only if all patterns match. */
         MATCH_ALL
     }
-
-    // TODO: Add other filtering options like in JUnit (e.g., mode, etc.)
 }
