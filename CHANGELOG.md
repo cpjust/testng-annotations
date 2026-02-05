@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.3.0] - 2026-01-31
+## [1.3.0] - 2026-02-04
 ### Added
 - `@EnumSource` annotation to provide enum constants as parameters to test methods, similar to JUnit 5's `@EnumSource`.
 - `EnumSourceListener` to handle the `@EnumSource` annotation and provide test values for parameterized tests.

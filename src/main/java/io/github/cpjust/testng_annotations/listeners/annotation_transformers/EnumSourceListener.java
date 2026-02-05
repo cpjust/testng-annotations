@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -83,8 +85,7 @@ public class EnumSourceListener extends SourceListenerBase implements IAnnotatio
 
         // If no names are specified, include all enum constants.
         if (names.length == 0) {
-            filteredConstants = Arrays.stream(allEnumConstants)
-                    .collect(Collectors.toList());
+            filteredConstants = Arrays.asList(allEnumConstants);
         } else {
             filteredConstants = filterEnumConstants(mode, names, allEnumConstants);
         }
@@ -108,55 +109,68 @@ public class EnumSourceListener extends SourceListenerBase implements IAnnotatio
      * @return A list of filtered enum constants.
      */
     private static List<Enum<?>> filterEnumConstants(EnumSource.Mode mode, String[] names, Enum<?>[] allEnumConstants) {
-        List<Enum<?>> filteredConstants;
-
         switch (mode) {
             case MATCH_ANY: {
                 final Pattern[] patterns = compilePatterns(names);
-                filteredConstants = Arrays.stream(allEnumConstants)
-                        .filter(constant -> {
-                            for (Pattern p : patterns) {
-                                if (p.matcher(constant.name()).find()) {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        })
+                return Arrays.stream(allEnumConstants)
+                        .filter(constant -> matchesAny(patterns, constant.name()))
                         .collect(Collectors.toList());
-                break;
             }
             case MATCH_ALL: {
                 final Pattern[] patterns = compilePatterns(names);
-                filteredConstants = Arrays.stream(allEnumConstants)
-                        .filter(constant -> {
-                            for (Pattern p : patterns) {
-                                if (!p.matcher(constant.name()).find()) {
-                                    return false;
-                                }
-                            }
-                            return true;
-                        })
+                return Arrays.stream(allEnumConstants)
+                        .filter(constant -> matchesAll(patterns, constant.name()))
                         .collect(Collectors.toList());
-                break;
             }
             case EXCLUDE: {
-                Set<String> namesToFilter = Arrays.stream(names).collect(Collectors.toSet());
-                filteredConstants = Arrays.stream(allEnumConstants)
+                // Use HashSet backed by Arrays.asList for clearer intent and faster lookups
+                final Set<String> namesToFilter = new HashSet<>(Arrays.asList(names));
+                return Arrays.stream(allEnumConstants)
                         .filter(constant -> !namesToFilter.contains(constant.name()))
                         .collect(Collectors.toList());
-                break;
             }
             case INCLUDE:
             default: {
-                Set<String> namesToFilter = Arrays.stream(names).collect(Collectors.toSet());
-                filteredConstants = Arrays.stream(allEnumConstants)
+                final Set<String> namesToFilter = new HashSet<>(Arrays.asList(names));
+                return Arrays.stream(allEnumConstants)
                         .filter(constant -> namesToFilter.contains(constant.name()))
                         .collect(Collectors.toList());
-                break;
+            }
+        }
+    }
+
+    /**
+     * Returns true if any pattern matches the given input.
+     *
+     * @param patterns The array of compiled regex patterns.
+     * @param input    The input string to match against.
+     * @return True if any pattern matches the input, false otherwise.
+     */
+    private static boolean matchesAny(Pattern[] patterns, String input) {
+        for (Pattern p : patterns) {
+            if (p.matcher(input).find()) {
+                return true;
             }
         }
 
-        return filteredConstants;
+        return false;
+    }
+
+    /**
+     * Returns true if all patterns match the given input.
+     *
+     * @param patterns The array of compiled regex patterns.
+     * @param input    The input string to test.
+     * @return True if all patterns match the input, false otherwise.
+     */
+    private static boolean matchesAll(Pattern[] patterns, String input) {
+        for (Pattern p : patterns) {
+            if (!p.matcher(input).find()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -185,9 +199,7 @@ public class EnumSourceListener extends SourceListenerBase implements IAnnotatio
      */
     private static Enum<?>[] validateMethodAndAnnotation(Method method, EnumSource enumSource) {
         // Verify that the annotation is present and get the enum class and constants.
-        if (enumSource == null) {
-            throw new IllegalStateException("No @EnumSource annotation found on method: " + method.getName());
-        }
+        Objects.requireNonNull(enumSource, "No @EnumSource annotation found on method: " + method.getName());
 
         Class<? extends Enum<?>> enumClass = enumSource.value();
         Enum<?>[] constants = enumClass.getEnumConstants();
@@ -198,15 +210,16 @@ public class EnumSourceListener extends SourceListenerBase implements IAnnotatio
 
         // Validate the method has exactly one parameter of the correct enum type.
         Class<?>[] methodParamClasses = method.getParameterTypes();
+        final String methodName = method.getName();
 
         if (methodParamClasses.length != 1) {
-            throw new IllegalStateException(String.format("Method '%s' should have 1 parameter, but it has %d", method.getName(), methodParamClasses.length));
+            throw new IllegalStateException(String.format("Method '%s' should have 1 parameter, but it has %d", methodName, methodParamClasses.length));
         }
 
-        if (enumClass != methodParamClasses[0]) {
+        if (!enumClass.equals(methodParamClasses[0])) {
             throw new IllegalStateException(String.format(
                     "Enum class %s is not compatible with parameter type %s in method: %s",
-                    enumClass.getSimpleName(), method.getParameterTypes()[0].getSimpleName(), method.getName()));
+                    enumClass.getSimpleName(), methodParamClasses[0].getSimpleName(), methodName));
         }
 
         return constants;
