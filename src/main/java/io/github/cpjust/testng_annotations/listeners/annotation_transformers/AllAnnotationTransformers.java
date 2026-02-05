@@ -25,6 +25,7 @@ import java.util.Map;
 public class AllAnnotationTransformers extends SourceListenerBase implements IAnnotationTransformer {
     private static final List<Map.Entry<Class<?>, String>> ALL_DATA_PROVIDERS = List.of(
             CsvSourceListener.CSV_SOURCE_PROVIDER_CLASS_AND_NAME,
+            EnumSourceListener.ENUM_SOURCE_PROVIDER_CLASS_AND_NAME,
             ValueSourceListener.VALUE_SOURCE_PROVIDER_CLASS_AND_NAME
     );
 
@@ -57,6 +58,9 @@ public class AllAnnotationTransformers extends SourceListenerBase implements IAn
         if (CsvSourceListener.isCsvSourcePresent(testMethod)) {
             annotation.setDataProvider(CsvSourceListener.CSV_SOURCE_PROVIDER_CLASS_AND_NAME.getValue());
             annotation.setDataProviderClass(CsvSourceListener.CSV_SOURCE_PROVIDER_CLASS_AND_NAME.getKey());
+        } else if (EnumSourceListener.isEnumSourcePresent(testMethod)) {
+            annotation.setDataProvider(EnumSourceListener.ENUM_SOURCE_PROVIDER_CLASS_AND_NAME.getValue());
+            annotation.setDataProviderClass(EnumSourceListener.ENUM_SOURCE_PROVIDER_CLASS_AND_NAME.getKey());
         } else if (ValueSourceListener.isValueSourcePresent(testMethod)) {
             annotation.setDataProvider(ValueSourceListener.VALUE_SOURCE_PROVIDER_CLASS_AND_NAME.getValue());
             annotation.setDataProviderClass(ValueSourceListener.VALUE_SOURCE_PROVIDER_CLASS_AND_NAME.getKey());

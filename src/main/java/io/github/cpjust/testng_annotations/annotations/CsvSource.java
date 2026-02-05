@@ -1,5 +1,6 @@
 package io.github.cpjust.testng_annotations.annotations;
 
+import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -9,6 +10,7 @@ import java.lang.annotation.Target;
  * Annotation that provides a comma-separated list of values for a parameterized test method.
  * Works similarly to JUnit's CsvSource.
  */
+@Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface CsvSource {

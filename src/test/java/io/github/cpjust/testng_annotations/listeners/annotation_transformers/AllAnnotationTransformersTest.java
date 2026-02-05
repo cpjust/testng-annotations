@@ -1,6 +1,7 @@
 package io.github.cpjust.testng_annotations.listeners.annotation_transformers;
 
 import io.github.cpjust.testng_annotations.annotations.CsvSource;
+import io.github.cpjust.testng_annotations.annotations.EnumSource;
 import io.github.cpjust.testng_annotations.annotations.NullAndEmptySource;
 import io.github.cpjust.testng_annotations.annotations.NullSource;
 import io.github.cpjust.testng_annotations.annotations.ValueSource;
@@ -17,10 +18,12 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AllAnnotationTransformersTest extends SourceListenerTestBase {
     static final String METHODS_SHOULD_NOT_BE_EMPTY = "java:S1186"; // Suppress "Methods should not be empty" warning
+    static final String CANNOT_COMBINE_MULTIPLE_SOURCE_ANNOTATIONS_ON_METHOD = "Cannot combine @CsvSource with @EnumSource or any ValueSource annotation on method";
 
     // Dummy test class for tests
     @SuppressWarnings(METHODS_SHOULD_NOT_BE_EMPTY) // Suppress "Methods should not be empty" warning
@@ -47,6 +50,15 @@ class AllAnnotationTransformersTest extends SourceListenerTestBase {
         @CsvSource({"1,2", "3,4"})
         @ValueSource(strings = {"5", "6"})
         public void testMethodWithCsvSourceAndValueSource(String value) {}
+
+        @CsvSource({"foo,bar"})
+        @EnumSource(TestEnum.class)
+        public void testMethodWithCsvSourceAndEnumSource(String value) {}
+
+        @ValueSource(strings = {"5", "6"})
+        @EnumSource(TestEnum.class)
+        public void testMethodWithValueSourceAndEnumSource(String value) {}
+
     }
     
     //region Positive tests for valid annotation combinations
@@ -78,7 +90,9 @@ class AllAnnotationTransformersTest extends SourceListenerTestBase {
         return Stream.of(
                 Arguments.of("testMethodWithCsvSourceAndNullAndEmptySource"),
                 Arguments.of("testMethodWithCsvSourceAndNullSource"),
-                Arguments.of("testMethodWithCsvSourceAndValueSource")
+                Arguments.of("testMethodWithCsvSourceAndValueSource"),
+                Arguments.of("testMethodWithCsvSourceAndEnumSource"),
+                Arguments.of("testMethodWithValueSourceAndEnumSource")
         );
     }
 
@@ -96,7 +110,7 @@ class AllAnnotationTransformersTest extends SourceListenerTestBase {
         );
         assertThat("Exception message should mention both annotations",
                 thrown.getMessage(),
-                containsString("Cannot combine @CsvSource with any ValueSource annotation")
+                containsString(CANNOT_COMBINE_MULTIPLE_SOURCE_ANNOTATIONS_ON_METHOD)
         );
     }
     //endregion Negative tests for invalid annotation combinations
@@ -129,37 +143,62 @@ class AllAnnotationTransformersTest extends SourceListenerTestBase {
     void throwIfTestHasMultipleDataProviders_incompatibleAnnotations_throwsException(String methodName) throws NoSuchMethodException {
         Method method = TestClass.class.getMethod(methodName, String.class);
         IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
-                SourceListenerBase.throwIfTestHasMultipleDataProviders(method));
-        assertThat(exception.getMessage(), containsString("Cannot combine @CsvSource with any ValueSource annotation"));
+                SourceListenerBase.throwIfTestHasMultipleDataProviders(method),
+                "throwIfTestHasMultipleDataProviders() should throw an exception when multiple source annotations are present");
+        assertThat(WRONG_EXCEPTION_MESSAGE, exception.getMessage(),
+                containsString(CANNOT_COMBINE_MULTIPLE_SOURCE_ANNOTATIONS_ON_METHOD));
     }
 
     @Test
     void throwIfTestHasMultipleDataProviders_onlyCsvSource_doesNotThrow() throws NoSuchMethodException {
         Method method = TestClass.class.getMethod("testMethodWithOnlyCsvSource", String.class);
-        SourceListenerBase.throwIfTestHasMultipleDataProviders(method); // Should not throw
+        assertDoesNotThrow(() -> SourceListenerBase.throwIfTestHasMultipleDataProviders(method),
+                "No exception should be thrown when test is annotated with only @CsvSource");
     }
 
-    @Test
-    void throwIfDataProviderNotAllowed_withDisallowedDataProvider_throwsException() throws NoSuchMethodException {
+    static Stream<Arguments> disallowedDataProvidersProvider() {
+        return Stream.of(
+                Arguments.of(CsvSourceListener.CSV_SOURCE_PROVIDER, EnumSourceListener.class),
+                Arguments.of(EnumSourceListener.ENUM_SOURCE_PROVIDER, ValueSourceListener.class),
+                Arguments.of(ValueSourceListener.VALUE_SOURCE_PROVIDER, CsvSourceListener.class)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("disallowedDataProvidersProvider")
+    void throwIfDataProviderNotAllowed_withDisallowedDataProvider_throwsException(String dataProvider, Class<?> dataProviderClass) throws NoSuchMethodException {
         Method method = TestClass.class.getMethod("testMethodWithOnlyCsvSource", String.class);
         ITestAnnotation annotation = Mockito.mock(ITestAnnotation.class);
-        Mockito.when(annotation.getDataProvider()).thenReturn("disallowedProvider");
+        Mockito.when(annotation.getDataProvider()).thenReturn(dataProvider);
+        Mockito.when(annotation.getDataProviderClass()).thenAnswer(invocation -> dataProviderClass);
 
         AllAnnotationTransformers transformer = new AllAnnotationTransformers();
         IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
-                transformer.throwIfDataProviderNotAllowed(annotation, method));
-        assertThat(exception.getMessage(), containsString("Cannot specify a dataProvider in @Test when also using @CsvSource"));
+                        transformer.throwIfDataProviderNotAllowed(annotation, method),
+                "throwIfDataProviderNotAllowed() should throw an exception when a disallowed data provider is present");
+        assertThat(WRONG_EXCEPTION_MESSAGE, exception.getMessage(),
+                containsString("Cannot specify a dataProvider in @Test when also using @CsvSource or any ValueSource annotation on method"));
     }
 
-    @Test
-    void throwIfDataProviderNotAllowed_withAllowedDataProvider_doesNotThrow() throws NoSuchMethodException {
+    static Stream<Arguments> allowedDataProvidersProvider() {
+        return Stream.of(
+                Arguments.of(CsvSourceListener.CSV_SOURCE_PROVIDER, CsvSourceListener.class),
+                Arguments.of(EnumSourceListener.ENUM_SOURCE_PROVIDER, EnumSourceListener.class),
+                Arguments.of(ValueSourceListener.VALUE_SOURCE_PROVIDER, ValueSourceListener.class)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("allowedDataProvidersProvider")
+    void throwIfDataProviderNotAllowed_withAllowedDataProvider_doesNotThrow(String dataProvider, Class<?> dataProviderClass) throws NoSuchMethodException {
         Method method = TestClass.class.getMethod("testMethodWithOnlyCsvSource", String.class);
         ITestAnnotation annotation = Mockito.mock(ITestAnnotation.class);
-        Mockito.when(annotation.getDataProvider()).thenReturn(CsvSourceListener.CSV_SOURCE_PROVIDER);
-        Mockito.when(annotation.getDataProviderClass()).thenAnswer(invocation -> CsvSourceListener.class);
+        Mockito.when(annotation.getDataProvider()).thenReturn(dataProvider);
+        Mockito.when(annotation.getDataProviderClass()).thenAnswer(invocation -> dataProviderClass);
 
         AllAnnotationTransformers transformer = new AllAnnotationTransformers();
-        transformer.throwIfDataProviderNotAllowed(annotation, method); // Should not throw
+        assertDoesNotThrow(() -> transformer.throwIfDataProviderNotAllowed(annotation, method),
+                "No exception should be thrown when an allowed data provider is present");
     }
     //endregion Tests for SourceListenerBase methods
 }

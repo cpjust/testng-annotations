@@ -7,6 +7,7 @@ import org.testng.annotations.ITestAnnotation;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Base class for source listeners that handle data provider annotations.
@@ -22,11 +23,16 @@ public abstract class SourceListenerBase {
      */
     protected static void throwIfTestHasMultipleDataProviders(@NonNull Method testMethod) {
         boolean hasCsvSource = CsvSourceListener.isCsvSourcePresent(testMethod);
+        boolean hasEnumSource = EnumSourceListener.isEnumSourcePresent(testMethod);
         boolean hasValueSource = ValueSourceListener.isValueSourcePresent(testMethod);
 
-        if (hasCsvSource && hasValueSource) {
+        long sourceCount = Stream.of(hasCsvSource, hasEnumSource, hasValueSource)
+                .filter(b -> b) // Filter only true values.
+                .count();
+
+        if (sourceCount > 1) {
             throw new IllegalStateException(String.format(
-                    "Cannot combine @CsvSource with any ValueSource annotation on method: %s.%s. "
+                    "Cannot combine @CsvSource with @EnumSource or any ValueSource annotation on method: %s.%s. "
                             + "Only one of these annotations may be present.",
                     testMethod.getDeclaringClass().getName(), testMethod.getName()));
         }
@@ -58,15 +64,17 @@ public abstract class SourceListenerBase {
     protected boolean isDataProviderAllowed(@NonNull ITestAnnotation annotation) {
         Class<?> dataProviderClass = annotation.getDataProviderClass();
         String dataProvider = annotation.getDataProvider();
-        boolean isAllowed = true;
+        boolean isDataProviderAllowed = ((dataProviderClass == null) && ((dataProvider == null) || dataProvider.isBlank()));
 
-        if (dataProvider != null ) {
-            String trimmedDataProvider = dataProvider.trim();
-            isAllowed = trimmedDataProvider.isEmpty() || allowedDataProviders.stream()
-                    .anyMatch(kv -> (kv.getKey() == dataProviderClass) && kv.getValue().equals(trimmedDataProvider));
+        // If either dataProvider or dataProviderClass is specified, then both must match an allowed pair.
+        if (!isDataProviderAllowed) {
+            // If no dataProvider name is specified, it defaults to "", so only continue checking allowedDataProviders if it's not blank.
+            isDataProviderAllowed = (dataProvider != null) && !dataProvider.isBlank() && allowedDataProviders.stream()
+                    .anyMatch(kv -> (kv.getKey() == dataProviderClass) &&
+                            (kv.getValue().equals(dataProvider)));
         }
 
-        return isAllowed;
+        return isDataProviderAllowed;
     }
 
     /**
@@ -77,6 +85,7 @@ public abstract class SourceListenerBase {
      */
     protected boolean hasAnySource(@NonNull Method testMethod) {
         return CsvSourceListener.isCsvSourcePresent(testMethod) ||
-               ValueSourceListener.isValueSourcePresent(testMethod);
+               ValueSourceListener.isValueSourcePresent(testMethod) ||
+               EnumSourceListener.isEnumSourcePresent(testMethod);
     }
 }

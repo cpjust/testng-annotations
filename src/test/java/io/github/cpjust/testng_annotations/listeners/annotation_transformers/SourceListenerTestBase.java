@@ -1,10 +1,12 @@
 package io.github.cpjust.testng_annotations.listeners.annotation_transformers;
 
 import io.github.cpjust.testng_annotations.annotations.CsvSource;
+import io.github.cpjust.testng_annotations.annotations.EnumSource;
 import io.github.cpjust.testng_annotations.annotations.ValueSource;
 import lombok.NonNull;
 import org.mockito.Mockito;
 import org.testng.IAnnotationTransformer;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.ITestAnnotation;
 
 import java.lang.reflect.Method;
@@ -15,17 +17,28 @@ public abstract class SourceListenerTestBase {
     static final String METHODS_SHOULD_NOT_BE_EMPTY = "java:S1186"; // Suppress "Methods should not be empty" warning
     static final String EXCEPTION_MESSAGE_SHOULD_MENTION_DATA_PROVIDER_CONFLICT = "Exception message should mention dataProvider conflict";
     static final String CANNOT_SPECIFY_A_DATA_PROVIDER_IN_TEST_WHEN_ALSO_USING_CSV_SOURCE_OR_ANY_VALUE_SOURCE_ANNOTATION = "Cannot specify a dataProvider in @Test when also using @CsvSource or any ValueSource annotation";
+    protected static final String WRONG_EXCEPTION_MESSAGE = "Wrong exception message!";
+
+    public enum TestEnum {
+        VALUE_ONE,
+        VALUE_TWO,
+        VALUE_THREE
+    }
 
     // Dummy test class for data provider conflicts
     @SuppressWarnings(METHODS_SHOULD_NOT_BE_EMPTY)
     public static class ConflictCases {
         @ValueSource(ints = {1, 2, 3})
-        @org.testng.annotations.Test(dataProvider = "nonExistingProvider")
+        @org.testng.annotations.Test(dataProvider = "wrongDataProvider")
         public void testValueSourceAndDataProvider_throwsException(int value) {}
 
         @CsvSource({"foo,bar"})
-        @org.testng.annotations.Test(dataProvider = "nonExistingProvider")
+        @org.testng.annotations.Test(dataProvider = "wrongDataProvider")
         public void testCsvSourceAndDataProvider_throwsException(String value) {}
+
+        @EnumSource(TestEnum.class)
+        @org.testng.annotations.Test(dataProvider = "wrongDataProvider")
+        public void testEnumSourceAndDataProvider_throwsException(TestEnum value) {}
 
         @ValueSource(ints = {1, 2, 3})
         @org.testng.annotations.Test(dataProvider = ValueSourceListener.VALUE_SOURCE_PROVIDER, dataProviderClass = CsvSourceListener.class)
@@ -34,6 +47,17 @@ public abstract class SourceListenerTestBase {
         @CsvSource({"foo,bar"})
         @org.testng.annotations.Test(dataProvider = CsvSourceListener.CSV_SOURCE_PROVIDER)
         public void testCsvSourceAndValidDataProviderNameButNoClass_throwsException(String value) {}
+
+        @EnumSource(TestEnum.class)
+        @org.testng.annotations.Test(dataProviderClass = EnumSourceListener.class)
+        public void testEnumSourceAndValidDataProviderClassButNoName_throwsException(TestEnum value) {}
+    }
+
+    @DataProvider
+    public static Object[][] wrongDataProvider() {
+        return new Object[][] {
+                {"foo"}
+        };
     }
 
     /**
@@ -73,7 +97,7 @@ public abstract class SourceListenerTestBase {
         return assertThrows(
                 IllegalStateException.class,
                 () -> transformer.transform(mockAnnotation, ConflictCases.class, null, method),
-                "Expected transform() to throw if both dataProvider and ValueSource/CsvSource are present"
+                "Expected transform() to throw if both dataProvider and CsvSource/EnumSource/ValueSource are present"
         );
     }
 }

@@ -14,7 +14,9 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Slf4j
 class CsvSourceListenerTest extends SourceListenerTestBase {
@@ -190,12 +192,12 @@ class CsvSourceListenerTest extends SourceListenerTestBase {
         Method method = ErrorCases.class.getMethod(methodName, String.class);
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-                CsvSourceListener.provideValues(method)
+                CsvSourceListener.provideValues(method),
+                "provideValues() should throw an exception for method: " + methodName
         );
 
         log.info("Caught expected exception: '{}'", ex.getMessage());
-        assertThat("Wrong exception message.", ex.getMessage(),
-                containsString(expectedMessage));
+        assertThat(WRONG_EXCEPTION_MESSAGE, ex.getMessage(), containsString(expectedMessage));
     }
 
     @Test
@@ -203,10 +205,11 @@ class CsvSourceListenerTest extends SourceListenerTestBase {
         Method method = ErrorCases.class.getMethod("wrongParamType", int.class, int.class);
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-                CsvSourceListener.provideValues(method)
+                CsvSourceListener.provideValues(method),
+                "provideValues() should throw an exception for method: wrongParamType"
         );
 
-        assertTrue(ex.getMessage().contains("does not match method parameter type"));
+        assertThat(WRONG_EXCEPTION_MESSAGE, ex.getMessage(), containsString("does not match method parameter type"));
     }
 
     // Parameterized test for delimiter/quote char errors
@@ -224,7 +227,8 @@ class CsvSourceListenerTest extends SourceListenerTestBase {
         Method method = ErrorCases.class.getMethod(methodName, String.class, String.class);
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                CsvSourceListener.provideValues(method)
+                CsvSourceListener.provideValues(method),
+                "provideValues() should throw an exception when an invalid delimiter or quote character is used."
         );
 
         log.info("Caught expected exception: '{}'", ex.getMessage());
@@ -243,10 +247,11 @@ class CsvSourceListenerTest extends SourceListenerTestBase {
         Method method = ZeroParamCase.class.getMethod("zeroParams");
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-            CsvSourceListener.provideValues(method)
+            CsvSourceListener.provideValues(method),
+            "provideValues() should throw an exception when no parameters are defined."
         );
 
-        assertTrue(ex.getMessage().contains("does not match method parameter count"), "Should throw for param count mismatch");
+        assertThat(WRONG_EXCEPTION_MESSAGE, ex.getMessage(), containsString("does not match method parameter count"));
     }
 
     @Test
@@ -260,10 +265,11 @@ class CsvSourceListenerTest extends SourceListenerTestBase {
         Method method = MoreParamsThanColumns.class.getMethod("moreParams", String.class, String.class);
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-            CsvSourceListener.provideValues(method)
+            CsvSourceListener.provideValues(method),
+            "provideValues() should throw an exception when more parameters are defined than CSV columns."
         );
 
-        assertTrue(ex.getMessage().contains("does not match method parameter count"), "Should throw for param count mismatch");
+        assertThat("Should throw for param count mismatch", ex.getMessage(), containsString("does not match method parameter count"));
     }
 
     @Test
@@ -277,10 +283,11 @@ class CsvSourceListenerTest extends SourceListenerTestBase {
         Method method = ZeroCsvLines.class.getMethod("zeroCsvLines", String.class);
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-            CsvSourceListener.provideValues(method)
+            CsvSourceListener.provideValues(method),
+            "provideValues() should throw an exception when zero CSV lines are provided."
         );
 
-        assertEquals("No values provided in @CsvSource annotation", ex.getMessage());
+        assertEquals("No values provided in @CsvSource annotation", ex.getMessage(), WRONG_EXCEPTION_MESSAGE);
     }
 
     @Test
