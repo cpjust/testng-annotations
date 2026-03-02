@@ -1,6 +1,7 @@
 package io.github.cpjust.testng_annotations.listeners;
 
 import io.github.cpjust.testng_annotations.BaseITEnvListener;
+import io.github.cpjust.testng_annotations.TestUtils;
 import io.github.cpjust.testng_annotations.annotations.ExcludeOnEnv;
 import io.github.cpjust.testng_annotations.annotations.IncludeOnEnv;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,7 @@ public class ExcludeAndIncludeOnEnvIT extends BaseITEnvListener {
     @Test
     public void testBothWithMatchEnv_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
-        failTestThatShouldNotRun();
+        TestUtils.failTestThatShouldNotRun();
     }
 
     @SuppressWarnings(METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS) // Suppress warning since annotations are different.
@@ -39,7 +40,7 @@ public class ExcludeAndIncludeOnEnvIT extends BaseITEnvListener {
     @Test
     public void testBothWithUnmatchEnv_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
-        failTestThatShouldNotRun();
+        TestUtils.failTestThatShouldNotRun();
     }
 
     @SuppressWarnings(METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS) // Suppress warning since annotations are different.
@@ -48,7 +49,7 @@ public class ExcludeAndIncludeOnEnvIT extends BaseITEnvListener {
     @Test
     public void testExcludeWithMatchEnvAndIncludeWithUnmatchEnv_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
-        failTestThatShouldNotRun();
+        TestUtils.failTestThatShouldNotRun();
     }
 
     @ExcludeOnEnv(value = "unmatchEnv")

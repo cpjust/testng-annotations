@@ -2,6 +2,7 @@ package io.github.cpjust.testng_annotations;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import org.testng.Assert;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -32,6 +33,13 @@ public class TestUtils {
     public static String getCurrentMethodNameWithParams(@NonNull Object... params) {
         String paramString = Arrays.stream(params).map(Object::toString).collect(Collectors.joining(", "));
         return getCurrentMethodName(1) + String.format("(%s)", paramString);
+    }
+
+    /**
+     * Fails a test that shouldn't run.
+     */
+    public static void failTestThatShouldNotRun() {
+        Assert.fail("This test shouldn't be run!");
     }
 
     /**
