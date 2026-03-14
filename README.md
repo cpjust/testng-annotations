@@ -419,6 +419,86 @@ Notes about regex and behavior:
 - If a provided pattern is syntactically invalid a `IllegalArgumentException` is thrown when the data provider is created.
 - Empty `names()` is treated as "no filtering" for all modes (INCLUDE => include all; EXCLUDE => exclude none; MATCH_* => include all).
 
+### @DisableBetweenDates
+
+Disables a test when the current date falls between two specified dates (inclusive). This is useful for temporarily disabling tests during specific periods, such as maintenance windows, holidays, or scheduled downtime.
+
+Dates must be in ISO-8601 format: `yyyy-MM-dd`
+
+This annotation can be applied at the class or method level. Method-level annotations take precedence over class-level annotations.
+
+**Parameters:**
+- `start`: The start date (inclusive) in ISO-8601 format (yyyy-MM-dd).
+- `end`: The end date (inclusive) in ISO-8601 format (yyyy-MM-dd).
+- `throwSkipException`: (Optional) Whether to skip the test by throwing a SkipException (true, default) or to disable it by setting enabled=false in the @Test annotation (false).
+  - `true` (default): Test is skipped and marked as "skipped" in TestNG reports.
+  - `false`: Test is disabled and does not appear in test results (useful if you don't want tests counted as skipped).
+
+**Example: Single date range**
+```java
+@Test
+@DisableBetweenDates(start = "2025-12-15", end = "2025-12-31")
+public void holidayMaintenanceTest() {
+    // This test will not run between December 15 and December 31, 2025
+}
+```
+
+**Example: Multiple date ranges (repeatable annotation)**
+```java
+@Test
+@DisableBetweenDates(start = "2025-07-01", end = "2025-07-31")
+@DisableBetweenDates(start = "2025-12-15", end = "2025-12-31")
+public void maintenanceWindowTest() {
+    // This test will be disabled during July 1-31 and December 15-31, 2025
+}
+```
+
+**Example: Class-level annotation**
+```java
+@DisableBetweenDates(start = "2025-06-15", end = "2025-06-30")
+public class SummerMaintenanceTests {
+    
+    @Test
+    public void testOne() {
+        // Disabled during the specified period
+    }
+    
+    @Test
+    public void testTwo() {
+        // Also disabled during the specified period
+    }
+}
+```
+
+**Example: Method-level overrides class-level**
+```java
+@DisableBetweenDates(start = "2025-01-01", end = "2025-12-31")
+public class MaintenanceYear {
+    
+    @Test
+    public void regularTest() {
+        // Disabled for the entire year 2025
+    }
+    
+    @Test
+    @DisableBetweenDates(start = "2025-06-01", end = "2025-06-30")
+    public void summerOnlyTest() {
+        // Method-level annotation overrides class-level
+        // This test is only disabled during June 2025
+    }
+}
+```
+
+**Example: Disabling with enabled=false instead of SkipException**
+```java
+@Test
+@DisableBetweenDates(start = "2025-01-01", end = "2025-01-07", throwSkipException = false)
+public void silentDisableTest() {
+    // This test will not appear in test results and won't be marked as "skipped"
+    // Instead, it will be disabled in the TestNG annotation itself
+}
+```
+
 ---
 
 ## ⚠️ Annotation Combination Restrictions
@@ -448,6 +528,11 @@ public void testWithBoth(String value) { ... } // This will cause an error
 
 ## Listeners:
 
+### AllAnnotationTransformers
+This is a single listener that combines the functionality of all the annotation transformers in this project, including
+`ExcludeOnEnvListener`, `IncludeOnEnvListener`, `CsvSourceListener`, and `DisableBetweenDatesListener`.
+If you want to use all the features of this project, you can simply register this one listener instead of registering each individual listener.
+
 ### ExcludeOnEnvListener
 This is the listener for TestNG tests that are annotated with `@ExcludeOnEnv`.
 To register this listener, either define it in the `src/test/resources/META-INF/services/org.testng.ITestNGListener`
@@ -466,12 +551,28 @@ To register this listener, either define it in the `src/test/resources/META-INF/
 file (by adding `io.github.cpjust.testng_annotations.listeners.annotation_transformers.CsvSourceListener` to the file)
 or add the listener to the testng.xml file.
 
-## Notes on annotation implementations:
-After implementing the IAnnotationTransformer & IMethodInterceptor interfaces, getting TestNG to actually run them was tricky.
-- IAnnotationTransformer only executes if it's defined in the `src/test/resources/META-INF/services/org.testng.ITestNGListener` file.
-- IMethodInterceptor executes if it's defined in the `src/test/resources/META-INF/services/org.testng.ITestNGListener` file or
-  if you add the `@Listeners({ExcludeOnEnvListener.class})` annotation to the test class.
-- The `env` system property is only picked up if defined with `-Denv` on the command line or in the `@BeforeSuite`, but not with `@BeforeClass`.
+### DisableBetweenDatesListener
+This is the listener for TestNG tests that are annotated with `@DisableBetweenDates`.
+To register this listener, either define it in the `src/test/resources/META-INF/services/org.testng.ITestNGListener`
+file (by adding `io.github.cpjust.testng_annotations.listeners.annotation_transformers.DisableBetweenDatesListener` to the file)
+or add the `@Listeners({DisableBetweenDatesListener.class})` annotation to the test class.
+
+**Registration options: (pick one)**
+- Add to `src/test/resources/META-INF/services/org.testng.ITestNGListener`:
+```
+io.github.cpjust.testng_annotations.listeners.annotation_transformers.DisableBetweenDatesListener
+```
+- OR add to the test class:
+```java
+@Listeners({DisableBetweenDatesListener.class})
+```
+
+**Behavior:**
+- By default, tests matching the date range are skipped by throwing a `SkipException`, which marks them as "skipped" in TestNG reports.
+- If `throwSkipException=false` is set on the `@DisableBetweenDates` annotation, you must use the `AllAnnotationTransformers` listener to disable the test by setting `enabled=false` instead, which prevents the test from appearing in results at all.
+- Dates are evaluated using the system default time zone.
+- Both class-level and method-level annotations are checked; method-level annotations take precedence.
+- Multiple `@DisableBetweenDates` annotations on the same test are supported (repeatable annotation). If the current date falls within any of the ranges, the test will be disabled.
 
 ### ValueSourceListener
 This is the listener for TestNG tests that are annotated with `@ValueSource`, `@NullSource`, `@EmptySource` and `@NullAndEmptySource`.
@@ -508,6 +609,13 @@ io.github.cpjust.testng_annotations.listeners.annotation_transformers.ValueSourc
 You cannot register both listeners in the `src/test/resources/META-INF/services/org.testng.ITestNGListener` file.
 To use both, you must register `io.github.cpjust.testng_annotations.listeners.annotation_transformers.AllAnnotationTransformers` in the file instead,
 which will delegate to both listeners.
+
+## Notes on annotation implementations:
+After implementing the IAnnotationTransformer & IMethodInterceptor interfaces, getting TestNG to actually run them was tricky.
+- IAnnotationTransformer only executes if it's defined in the `src/test/resources/META-INF/services/org.testng.ITestNGListener` file.
+- IMethodInterceptor executes if it's defined in the `src/test/resources/META-INF/services/org.testng.ITestNGListener` file or
+  if you add the `@Listeners({ExcludeOnEnvListener.class})` annotation to the test class.
+- The `env` system property is only picked up if defined with `-Denv` on the command line or in the `@BeforeSuite`, but not with `@BeforeClass`.
 
 ---
 

@@ -31,3 +31,6 @@ test-output/
 .idea/
 *.iml
 .aider*
+
+# Other files
+*.txt
