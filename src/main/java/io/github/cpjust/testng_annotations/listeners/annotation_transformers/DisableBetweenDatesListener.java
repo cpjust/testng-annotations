@@ -177,6 +177,11 @@ public class DisableBetweenDatesListener implements IInvokedMethodListener {
                     annotation.end(), annotation.start()));
         }
 
+        if (now.isAfter(end)) {
+            log.warn("@DisableBetweenDates annotation has expired: current date '{}' is after end date '{}'",
+                    now, annotation.end());
+        }
+
         // inclusive range
         return (!now.isBefore(start)) && (!now.isAfter(end));
     }
