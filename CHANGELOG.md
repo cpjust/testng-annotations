@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.4.0] - 2026-03-14
+## [1.4.0] - 2026-04-19
 ### Added
 - `@DisableBetweenDates` annotation to disable tests between specific dates.
 - Added a review-code copilot prompt file.
