@@ -1,6 +1,7 @@
 package io.github.cpjust.testng_annotations.listeners;
 
 import io.github.cpjust.testng_annotations.BaseITEnvListener;
+import io.github.cpjust.testng_annotations.TestUtils;
 import io.github.cpjust.testng_annotations.annotations.IncludeOnEnv;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.annotations.DataProvider;
@@ -31,7 +32,7 @@ public class IncludeOnEnvIT extends BaseITEnvListener {
     @Test
     public void testWithNonIncludedEnv_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
-        failTestThatShouldNotRun();
+        TestUtils.failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = "matchEnv")
@@ -50,7 +51,7 @@ public class IncludeOnEnvIT extends BaseITEnvListener {
     @Test
     public void testWithNonIncludedEnv_customPropertyName_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
-        failTestThatShouldNotRun();
+        TestUtils.failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = {"matchEnvironment"}, propertyName = "environment")
@@ -69,7 +70,7 @@ public class IncludeOnEnvIT extends BaseITEnvListener {
     @Test(dataProvider = "testData")
     public void testWithNonIncludedEnv_isNotRun(String foo) {
         testsRun.add(getCurrentMethodNameWithParams(foo));
-        failTestThatShouldNotRun();
+        TestUtils.failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = {"matchEnv"})
@@ -94,14 +95,14 @@ public class IncludeOnEnvIT extends BaseITEnvListener {
     @Test
     public void testWithNonIncludedEnv_csvWithDelimiter_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
-        failTestThatShouldNotRun();
+        TestUtils.failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = {"dev|prod", "stage|unmatchEnv"}, delimiter = "|")
     @Test
     public void testWithNonIncludedEnv_arrayOfCsvWithDelimiter_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
-        failTestThatShouldNotRun();
+        TestUtils.failTestThatShouldNotRun();
     }
 
     @IncludeOnEnv(value = {"dev|prod", "stage|matchEnv|"}, delimiter = "|")

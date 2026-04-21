@@ -6,7 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.3.0] - 2026-01-31
+## [1.4.0] - 2026-04-19
+### Added
+- `@DisableBetweenDates` annotation to disable tests between specific dates.
+- Added a review-code copilot prompt file.
+
+### Changed
+- Refactored EnumSourceListener.
+- Moved failTestThatShouldNotRun() to TestUtils.
+
+## [1.3.0] - 2026-02-04
 ### Added
 - `@EnumSource` annotation to provide enum constants as parameters to test methods, similar to JUnit 5's `@EnumSource`.
 - `EnumSourceListener` to handle the `@EnumSource` annotation and provide test values for parameterized tests.

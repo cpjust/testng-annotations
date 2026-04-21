@@ -20,6 +20,7 @@ This project contains some extra annotations that are useful when running tests 
 - Try to keep cognitive complexity low; refactor complex methods into smaller, more manageable ones.
 - Avoid using magic numbers; use named constants instead.
 - Use pre-increment and pre-decrement operators instead of post-increment and post-decrement, unless you need to return the old value.
+- Code shouldn't use language features that are not supported in Java 11, such as records, switch expressions, or sealed classes.
 
 ### Writing Tests
 - Write unit tests for all new features and bug fixes.

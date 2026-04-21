@@ -1,7 +1,6 @@
 package io.github.cpjust.testng_annotations;
 
 import lombok.extern.slf4j.Slf4j;
-import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 
 @Slf4j
@@ -16,12 +15,5 @@ public class BaseITEnvListener {
         System.setProperty("environment", environment);
 
         log.info("Test environments configured - env: {}, environment: {}", env, environment);
-    }
-
-    /**
-     * Fails a test that shouldn't run.
-     */
-    protected static void failTestThatShouldNotRun() {
-        Assert.fail("This test shouldn't be run!");
     }
 }
