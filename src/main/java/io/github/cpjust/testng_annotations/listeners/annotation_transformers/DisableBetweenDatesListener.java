@@ -11,7 +11,10 @@ import org.testng.annotations.ITestAnnotation;
 
 import java.lang.reflect.Method;
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
@@ -164,17 +167,23 @@ public class DisableBetweenDatesListener implements IInvokedMethodListener {
      * @param annotation The DisableBetweenDates annotation to check.
      * @return True if the current date is between the start and end dates (inclusive), false otherwise.
      * @throws DateTimeParseException If the start or end date is not in the expected format.
-     * @throws IllegalArgumentException If the end date is before the start date.
+     * @throws IllegalArgumentException If the end date is before the start date or if the timezone is invalid.
      */
     private boolean isNowInRange(@NonNull DisableBetweenDates annotation) {
-        LocalDate now = LocalDate.now(clock);
+        ZoneId zone = parseTimezone(annotation.timezone());
+
+        // Use the clock to get the current date in the specified timezone, to allow for testing with a fixed clock.
+        ZonedDateTime zdt = ZonedDateTime.now(clock);
+        ZonedDateTime zonedNow = zdt.withZoneSameInstant(zone);
+        LocalDate now = zonedNow.toLocalDate();
+
         LocalDate start = LocalDate.parse(annotation.start().trim(), FORMATTER);
         LocalDate end = LocalDate.parse(annotation.end().trim(), FORMATTER);
 
         if (end.isBefore(start)) {
             throw new IllegalArgumentException(String.format(
-                    "Invalid @DisableBetweenDates annotation: end date '%s' must not be before start date '%s'",
-                    annotation.end(), annotation.start()));
+                    "Invalid @DisableBetweenDates annotation: start date '%s' must be before end date '%s'",
+                    annotation.start(), annotation.end()));
         }
 
         if (now.isAfter(end)) {
@@ -184,5 +193,25 @@ public class DisableBetweenDatesListener implements IInvokedMethodListener {
 
         // inclusive range
         return (!now.isBefore(start)) && (!now.isAfter(end));
+    }
+
+    /**
+     * Parses the timezone string and returns the corresponding ZoneId. If the string is null or blank, returns the system default timezone.
+     *
+     * @param timezoneString The timezone string to parse.
+     * @return The corresponding ZoneId, or the system default if the string is null or blank.
+     * @throws IllegalArgumentException If the timezone string is not a valid timezone ID.
+     */
+    private ZoneId parseTimezone(String timezoneString) {
+        if ((timezoneString == null) || timezoneString.isBlank()) {
+            return ZoneId.systemDefault();
+        }
+
+        try {
+            return ZoneId.of(timezoneString.trim());
+        } catch (DateTimeException e) {
+            throw new IllegalArgumentException(
+                    String.format("Invalid timezone: '%s'", timezoneString), e);
+        }
     }
 }
