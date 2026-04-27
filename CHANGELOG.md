@@ -6,7 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.4.0] - 2026-04-19
+## [1.4.1] - 2026-04-27
+### Added
+- Added optional `timezone` parameter to `@DisableBetweenDates` annotation to specify the timezone for date calculations.
+  Defaults to system default timezone if not specified.
+
+## [1.4.0] - 2026-04-21
 ### Added
 - `@DisableBetweenDates` annotation to disable tests between specific dates.
 - Added a review-code copilot prompt file.
