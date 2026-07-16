@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.4.1] - 2026-04-27
+## [1.4.1] - 2026-07-16
 ### Added
 - Added optional `timezone` parameter to `@DisableBetweenDates` annotation to specify the timezone for date calculations.
   Defaults to system default timezone if not specified.

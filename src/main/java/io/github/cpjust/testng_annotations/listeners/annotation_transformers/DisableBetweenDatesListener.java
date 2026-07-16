@@ -204,11 +204,14 @@ public class DisableBetweenDatesListener implements IInvokedMethodListener {
      */
     private ZoneId parseTimezone(String timezoneString) {
         if ((timezoneString == null) || timezoneString.isBlank()) {
+            log.debug("No timezone specified in @DisableBetweenDates annotation, using system default timezone");
             return ZoneId.systemDefault();
         }
 
         try {
-            return ZoneId.of(timezoneString.trim());
+            ZoneId zoneId = ZoneId.of(timezoneString.trim());
+            log.debug("Parsed timezone '{}' into ZoneId '{}'", timezoneString, zoneId);
+            return zoneId;
         } catch (DateTimeException e) {
             throw new IllegalArgumentException(
                     String.format("Invalid timezone: '%s'", timezoneString), e);
