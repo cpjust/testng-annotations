@@ -14,7 +14,7 @@ The testng-annotations project contains some extra annotations that are useful w
 <dependency>
     <groupId>io.github.cpjust</groupId>
     <artifactId>testng-annotations</artifactId>
-    <version>1.3.0</version>
+    <version>1.5.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -419,6 +419,97 @@ Notes about regex and behavior:
 - If a provided pattern is syntactically invalid a `IllegalArgumentException` is thrown when the data provider is created.
 - Empty `names()` is treated as "no filtering" for all modes (INCLUDE => include all; EXCLUDE => exclude none; MATCH_* => include all).
 
+---
+
+### @DisableBetweenTimes
+
+Disables a test every day when the current time falls between two specified times (inclusive). This is useful for temporarily
+disabling tests during specific hours, such as maintenance windows or performance testing hours.
+
+Times must be in ISO-8601 format: `HH:mm:ss`
+
+This annotation can be applied at the class or method level. Method-level annotations take precedence over class-level annotations.
+NOTE: Using different `throwSkipException` values at class and method levels can lead to confusing results of either skipped or disabled tests,
+so it's recommended to use the same value for all annotations in a class hierarchy to avoid confusion.
+
+**Parameters:**
+- `start`: The start time (inclusive) in ISO-8601 format (HH:mm:ss).
+- `end`: The end time (inclusive) in ISO-8601 format (HH:mm:ss).
+- `throwSkipException`: (Optional) Whether to skip the test by throwing a SkipException (true, default) or to disable it by setting
+  enabled=false in the @Test annotation (false).
+  - `true` (default): Test is skipped and marked as "skipped" in TestNG reports.
+  - `false`: Test is disabled and does not appear in test results (useful if you don't want tests counted as skipped).
+- `timezone`: (Optional) The time zone to use for time calculations. If empty, uses the system default time zone. Must be a valid time zone ID,
+  such as "UTC", "America/New_York", or "+01:00" (offset format).
+
+**Example: Single time range**
+```java
+@Test
+@DisableBetweenTimes(start = "09:00:00", end = "17:00:00")
+public void businessHoursMaintenanceTest() {
+    // This test will not run between 9 AM and 5 PM every day.
+}
+```
+
+**Example: Multiple time ranges (repeatable annotation)**
+```java
+@Test
+@DisableBetweenTimes(start = "00:00:00", end = "06:00:00")
+@DisableBetweenTimes(start = "18:00:00", end = "23:59:59")
+public void businessHoursOnlyTest() {
+    // This test will be disabled from midnight to 6 AM and from 6 PM to midnight.
+}
+```
+
+**Example: Class-level annotation**
+```java
+@DisableBetweenTimes(start = "09:00:00", end = "17:00:00")
+public class BusinessHoursTests {
+    
+    @Test
+    public void testOne() {
+        // Disabled during business hours (9 AM to 5 PM).
+    }
+    
+    @Test
+    public void testTwo() {
+        // Also disabled during business hours.
+    }
+}
+```
+
+**Example: Method-level overrides class-level**
+```java
+@DisableBetweenTimes(start = "09:00:00", end = "17:00:00")
+public class BusinessHoursMaintenance {
+    
+    @Test
+    public void regularTest() {
+        // Disabled during business hours (9 AM to 5 PM)
+    }
+    
+    @Test
+    @DisableBetweenTimes(start = "12:00:00", end = "13:00:00")
+    public void lunchTimeOnlyTest() {
+        // Method-level annotation overrides class-level
+        // This test is only disabled during lunch time (noon to 1 PM).
+    }
+}
+```
+
+**Example: Disabling with custom time zone and enabled=false instead of SkipException**
+```java
+@Test
+@DisableBetweenTimes(start = "09:00:00", end = "17:00:00", timezone="America/New_York", throwSkipException = false)
+public void silentDisableTestWithTimezone() {
+    // This test will be disabled from 9 AM to 5 PM every day, based on America/New_York time zone.
+    // This test will not appear in test results and won't be marked as "skipped"
+    // Instead, it will be disabled in the TestNG annotation itself.
+}
+```
+
+---
+
 ### @DisableBetweenDates
 
 Disables a test when the current date falls between two specified dates (inclusive). This is useful for temporarily disabling tests during specific periods, such as maintenance windows, holidays, or scheduled downtime.
@@ -426,6 +517,8 @@ Disables a test when the current date falls between two specified dates (inclusi
 Dates must be in ISO-8601 format: `yyyy-MM-dd`
 
 This annotation can be applied at the class or method level. Method-level annotations take precedence over class-level annotations.
+NOTE: Using different `throwSkipException` values at class and method levels can lead to confusing results of either skipped or disabled tests,
+so it's recommended to use the same value for all annotations in a class hierarchy to avoid confusion.
 
 **Parameters:**
 - `start`: The start date (inclusive) in ISO-8601 format (yyyy-MM-dd).
@@ -533,7 +626,7 @@ public void testWithBoth(String value) { ... } // This will cause an error
 
 ### AllAnnotationTransformers
 This is a single listener that combines the functionality of all the annotation transformers in this project, including
-`ExcludeOnEnvListener`, `IncludeOnEnvListener`, `CsvSourceListener`, and `DisableBetweenDatesListener`.
+`ExcludeOnEnvListener`, `IncludeOnEnvListener`, `CsvSourceListener`, `DisableBetweenDatesListener`, and `DisableBetweenTimesListener`.
 If you want to use all the features of this project, you can simply register this one listener instead of registering each individual listener.
 
 ### ExcludeOnEnvListener
@@ -553,6 +646,31 @@ This is the listener for TestNG tests that are annotated with `@CsvSource`.
 To register this listener, either define it in the `src/test/resources/META-INF/services/org.testng.ITestNGListener`
 file (by adding `io.github.cpjust.testng_annotations.listeners.annotation_transformers.CsvSourceListener` to the file)
 or add the listener to the testng.xml file.
+
+### DisableBetweenTimesListener
+This is the listener for TestNG tests that are annotated with `@DisableBetweenTimes`.
+To register this listener, either define it in the `src/test/resources/META-INF/services/org.testng.ITestNGListener`
+file (by adding `io.github.cpjust.testng_annotations.listeners.annotation_transformers.DisableBetweenTimesListener` to the file)
+or add the `@Listeners({DisableBetweenTimesListener.class})` annotation to the test class.
+
+**Registration options: (pick one)**
+- Add to `src/test/resources/META-INF/services/org.testng.ITestNGListener`:
+```
+io.github.cpjust.testng_annotations.listeners.annotation_transformers.DisableBetweenTimesListener
+```
+- OR add to the test class:
+```java
+@Listeners({DisableBetweenTimesListener.class})
+```
+
+**Behavior:**
+- By default, tests matching the time range are skipped by throwing a `SkipException`, which marks them as "skipped" in TestNG reports.
+- If `throwSkipException=false` is set on the `@DisableBetweenTimes` annotation, you must use the `AllAnnotationTransformers` listener
+  to disable the test by setting `enabled=false` instead, which prevents the test from appearing in results at all.
+- Times are evaluated every day using the specified time zone, or the system default time zone if not specified.
+- Both class-level and method-level annotations are checked; method-level annotations take precedence.
+- Multiple `@DisableBetweenTimes` annotations on the same test are supported (repeatable annotation). If the current time falls within any of the ranges,
+  the test will be disabled.
 
 ### DisableBetweenDatesListener
 This is the listener for TestNG tests that are annotated with `@DisableBetweenDates`.

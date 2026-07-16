@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.5.0] - 2026-08-24
+### Added
+- Added a `@DisableBetweenTimes` annotation to disable tests between specific times every day, with an optional `timezone` parameter
+  to specify the timezone for time calculations that defaults to system default timezone if not specified.
+- Added a `DisableBetweenTimesListener` to handle the `@DisableBetweenTimes` annotation and disable tests based on time ranges.
+
 ## [1.4.1] - 2026-07-16
 ### Added
 - Added optional `timezone` parameter to `@DisableBetweenDates` annotation to specify the timezone for date calculations.
