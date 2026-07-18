@@ -439,7 +439,7 @@ This annotation can be applied at the class or method level. Method-level annota
 @Test
 @DisableBetweenDates(start = "2025-12-15", end = "2025-12-31")
 public void holidayMaintenanceTest() {
-    // This test will not run between December 15 and December 31, 2025
+    // This test will not run between December 15 and December 31, 2025.
 }
 ```
 
@@ -449,7 +449,7 @@ public void holidayMaintenanceTest() {
 @DisableBetweenDates(start = "2025-07-01", end = "2025-07-31")
 @DisableBetweenDates(start = "2025-12-15", end = "2025-12-31")
 public void maintenanceWindowTest() {
-    // This test will be disabled during July 1-31 and December 15-31, 2025
+    // This test will be disabled during July 1-31 and December 15-31, 2025.
 }
 ```
 
@@ -460,12 +460,12 @@ public class SummerMaintenanceTests {
     
     @Test
     public void testOne() {
-        // Disabled during the specified period
+        // Disabled during the specified period.
     }
     
     @Test
     public void testTwo() {
-        // Also disabled during the specified period
+        // Also disabled during the specified period.
     }
 }
 ```
@@ -484,18 +484,21 @@ public class MaintenanceYear {
     @DisableBetweenDates(start = "2025-06-01", end = "2025-06-30")
     public void summerOnlyTest() {
         // Method-level annotation overrides class-level
-        // This test is only disabled during June 2025
+        // This test is only disabled during June 2025.
     }
 }
 ```
 
-**Example: Disabling with enabled=false instead of SkipException**
+**Example: Disabling with custom time zone and enabled=false instead of SkipException**
 ```java
 @Test
-@DisableBetweenDates(start = "2025-01-01", end = "2025-01-07", throwSkipException = false)
-public void silentDisableTest() {
+@DisableBetweenDates(start = "2025-01-01", end = "2025-01-07", timezone="UTC", throwSkipException = false)
+public void silentDisableTestWithTimezone() {
+    // This test will be disabled from January 1 to January 7, 2025, based on UTC time zone.
+    // Ex. If your local time zone is UTC-5, the test will be disabled starting at 7:00 PM local time on December 31, 2024,
+    // and will be enabled again at 7:00 PM local time on January 7, 2025.
     // This test will not appear in test results and won't be marked as "skipped"
-    // Instead, it will be disabled in the TestNG annotation itself
+    // Instead, it will be disabled in the TestNG annotation itself.
 }
 ```
 
@@ -569,10 +572,12 @@ io.github.cpjust.testng_annotations.listeners.annotation_transformers.DisableBet
 
 **Behavior:**
 - By default, tests matching the date range are skipped by throwing a `SkipException`, which marks them as "skipped" in TestNG reports.
-- If `throwSkipException=false` is set on the `@DisableBetweenDates` annotation, you must use the `AllAnnotationTransformers` listener to disable the test by setting `enabled=false` instead, which prevents the test from appearing in results at all.
-- Dates are evaluated using the system default time zone.
+- If `throwSkipException=false` is set on the `@DisableBetweenDates` annotation, you must use the `AllAnnotationTransformers` listener
+  to disable the test by setting `enabled=false` instead, which prevents the test from appearing in results at all.
+- Dates are evaluated using the specified time zone, or the system default time zone if not specified.
 - Both class-level and method-level annotations are checked; method-level annotations take precedence.
-- Multiple `@DisableBetweenDates` annotations on the same test are supported (repeatable annotation). If the current date falls within any of the ranges, the test will be disabled.
+- Multiple `@DisableBetweenDates` annotations on the same test are supported (repeatable annotation). If the current date falls within any of the ranges,
+  the test will be disabled.
 
 ### ValueSourceListener
 This is the listener for TestNG tests that are annotated with `@ValueSource`, `@NullSource`, `@EmptySource` and `@NullAndEmptySource`.

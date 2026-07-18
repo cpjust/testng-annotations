@@ -1,6 +1,7 @@
 package io.github.cpjust.testng_annotations.listeners.annotation_transformers;
 
 import io.github.cpjust.testng_annotations.annotations.DisableBetweenDates;
+import lombok.NonNull;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -45,6 +46,10 @@ class DisableBetweenDatesListenerTest {
     private static final String DATE_INVALID_DATE = "invalid-date";
     private static final String DATE_YEAR_RANGE_START = "2026-01-01";
     private static final String DATE_YEAR_RANGE_END = "2026-12-31";
+    private static final String TIMEZONE_OFFSET_MINUS_11 = "-11:00";
+    private static final String TIMEZONE_OFFSET_PLUS_14 = "Pacific/Kiritimati";
+    private static final String TIMEZONE_UTC = "UTC";
+    private static final String INVALID_TIMEZONE = "invalid";
     private static final LocalDate FIXED_DATE = LocalDate.of(2026, 2, 16);
 
     @SuppressWarnings(METHODS_SHOULD_NOT_BE_EMPTY) // Empty method is intentional for test purposes
@@ -85,9 +90,37 @@ class DisableBetweenDatesListenerTest {
         @DisableBetweenDates(start = DATE_INVALID_DATE, end = DATE_OUT_OF_RANGE_END, throwSkipException = true)
         public void invalidStartDateThrowSkip() {}
 
+        @DisableBetweenDates(start = DATE_ON_BOUNDARY, end = DATE_ON_BOUNDARY, timezone = TIMEZONE_UTC, throwSkipException = false)
+        public void inRangeTimezoneUTC() {}
+
+        @DisableBetweenDates(start = DATE_ON_BOUNDARY, end = DATE_ON_BOUNDARY, timezone = TIMEZONE_OFFSET_MINUS_11, throwSkipException = false)
+        public void inRangeTimezoneMinus11() {}
+
+        @DisableBetweenDates(start = DATE_ON_BOUNDARY, end = DATE_ON_BOUNDARY, timezone = TIMEZONE_OFFSET_PLUS_14, throwSkipException = false)
+        public void inRangeTimezonePlus14() {}
+
+        @DisableBetweenDates(start = DATE_IN_RANGE_START, end = DATE_IN_RANGE_END, timezone = INVALID_TIMEZONE, throwSkipException = false)
+        public void invalidTimezone() {}
+
+        @DisableBetweenDates(start = DATE_ON_BOUNDARY, end = DATE_ON_BOUNDARY, timezone = TIMEZONE_UTC, throwSkipException = true)
+        public void inRangeTimezoneUTCThrowSkip() {}
+
+        @DisableBetweenDates(start = DATE_IN_RANGE_START, end = DATE_IN_RANGE_END, timezone = " UTC ", throwSkipException = false)
+        public void inRangeTimezoneWithWhitespace() {}
+
+        @DisableBetweenDates(start = DATE_IN_RANGE_START, end = DATE_IN_RANGE_END, timezone = " UTC ", throwSkipException = true)
+        public void inRangeTimezoneWithWhitespaceThrowSkip() {}
+
+        @DisableBetweenDates(start = DATE_ON_BOUNDARY, end = DATE_ON_BOUNDARY, timezone = TIMEZONE_OFFSET_MINUS_11, throwSkipException = true)
+        public void inRangeTimezoneMinus11ThrowSkip() {}
+
+        @DisableBetweenDates(start = DATE_ON_BOUNDARY, end = DATE_ON_BOUNDARY, timezone = TIMEZONE_OFFSET_PLUS_14, throwSkipException = true)
+        public void inRangeTimezonePlus14ThrowSkip() {}
+
         public void noAnnotation() {}
     }
 
+    //region Tests with throwSkipException = false
     @DisableBetweenDates(start = DATE_IN_RANGE_START, end = DATE_IN_RANGE_END, throwSkipException = false)
     @SuppressWarnings(METHODS_SHOULD_NOT_BE_EMPTY) // Empty method is intentional for test purposes
     public static class NoThrowSkipClassInRange {
@@ -126,6 +159,7 @@ class DisableBetweenDatesListenerTest {
                 Arguments.of("MethodAnnotatedCases", "outOfRange", MethodAnnotatedCases.class, false, null),
                 Arguments.of("MethodAnnotatedCases", "endBeforeStart", MethodAnnotatedCases.class, false, IllegalArgumentException.class),
                 Arguments.of("MethodAnnotatedCases", "invalidStartDate", MethodAnnotatedCases.class, false, DateTimeParseException.class),
+                Arguments.of("MethodAnnotatedCases", "invalidTimezone", MethodAnnotatedCases.class, false, IllegalArgumentException.class),
                 Arguments.of("MethodAnnotatedCases", "noAnnotation", MethodAnnotatedCases.class, false, null),
 
                 Arguments.of("NoThrowSkipClassInRange", "classInRange", NoThrowSkipClassInRange.class, true, null),
@@ -163,13 +197,16 @@ class DisableBetweenDatesListenerTest {
         }
 
         // Assert
+        // If the method is in range, setEnabled(false) should be called once. Otherwise, it should never be called.
         if (shouldDisable) {
             verify(mockAnnotation, times(1)).setEnabled(false);
         } else {
             verify(mockAnnotation, never()).setEnabled(false);
         }
     }
+    //endregion Tests with throwSkipException = false
 
+    //region Tests with throwSkipException = true
     @DisableBetweenDates(start = DATE_IN_RANGE_START, end = DATE_IN_RANGE_END, throwSkipException = true)
     @SuppressWarnings(METHODS_SHOULD_NOT_BE_EMPTY) // Empty method is intentional for test purposes
     public static class ThrowSkipClassInRange {
@@ -260,18 +297,97 @@ class DisableBetweenDatesListenerTest {
                             className, testMethod));
         }
     }
+    //endregion Tests with throwSkipException = true
+
+    //region Timezone tests
+    static Stream<Arguments> timezoneNoThrowSkipArgumentsProvider() {
+        return Stream.of(
+                Arguments.of(TIMEZONE_UTC, "inRangeTimezoneUTC", true),
+                Arguments.of(TIMEZONE_UTC, "inRangeTimezoneWithWhitespace", true),
+                // This test shouldn't be disabled since the clock timezone is UTC and the annotation timezone is -11:00, which is 1pm on the previous day.
+                Arguments.of(TIMEZONE_UTC, "inRangeTimezoneMinus11", false),
+                Arguments.of(TIMEZONE_UTC, "inRangeTimezonePlus14", true),
+                Arguments.of(TIMEZONE_OFFSET_MINUS_11, "inRangeTimezoneUTC", true),
+                Arguments.of(TIMEZONE_OFFSET_MINUS_11, "inRangeTimezoneMinus11", true),
+                Arguments.of(TIMEZONE_OFFSET_PLUS_14, "inRangeTimezonePlus14", true)
+        );
+    }
+
+    @ParameterizedTest(name = "clock timezone {0} with method {1} should disable {2}")
+    @MethodSource(value = "timezoneNoThrowSkipArgumentsProvider")
+    void givenDifferentClockAndAnnotationTimezones_whenCallTransform_thenDisableCorrectly(
+            String clockTimezone, String methodName, boolean shouldDisable) throws Exception {
+        // Arrange
+        Clock clock = createFixedClock(ZoneId.of(clockTimezone));
+        DisableBetweenDatesListener transformer = new DisableBetweenDatesListener(clock);
+
+        Method method = MethodAnnotatedCases.class.getMethod(methodName);
+        ITestAnnotation mockAnnotation = Mockito.mock(ITestAnnotation.class);
+
+        // Act
+        assertDoesNotThrow(() -> transformer.transform(mockAnnotation, MethodAnnotatedCases.class, method));
+
+        // Assert
+        // If the method is in range, setEnabled(false) should be called once. Otherwise, it should never be called.
+        if (shouldDisable) {
+            verify(mockAnnotation, times(1)).setEnabled(false);
+        } else {
+            verify(mockAnnotation, never()).setEnabled(false);
+        }
+    }
+
+    static Stream<Arguments> timezoneThrowSkipArgumentsProvider() {
+        return Stream.of(
+                Arguments.of(TIMEZONE_UTC, "inRangeTimezoneUTCThrowSkip", SkipException.class),
+                Arguments.of(TIMEZONE_UTC, "inRangeTimezoneWithWhitespaceThrowSkip", SkipException.class),
+                // This test shouldn't be disabled since the clock timezone is UTC and the annotation timezone is -11:00, which is 1pm on the previous day.
+                Arguments.of(TIMEZONE_UTC, "inRangeTimezoneMinus11ThrowSkip", null),
+                Arguments.of(TIMEZONE_UTC, "inRangeTimezonePlus14ThrowSkip", SkipException.class),
+                Arguments.of(TIMEZONE_OFFSET_MINUS_11, "inRangeTimezoneUTCThrowSkip", SkipException.class),
+                Arguments.of(TIMEZONE_OFFSET_MINUS_11, "inRangeTimezoneMinus11ThrowSkip", SkipException.class),
+                Arguments.of(TIMEZONE_OFFSET_PLUS_14, "inRangeTimezonePlus14ThrowSkip", SkipException.class)
+        );
+    }
+
+    @ParameterizedTest(name = "clock timezone {0} with method {1} should throw {2}")
+    @MethodSource(value = "timezoneThrowSkipArgumentsProvider")
+    <T extends Throwable> void givenDifferentClockAndAnnotationTimezones_whenCallBeforeInvocation_thenThrowCorrectly(
+            String clockTimezone, String methodName, Class<T> expectedException) throws Exception {
+        // Arrange
+        Clock clock = createFixedClock(ZoneId.of(clockTimezone));
+        DisableBetweenDatesListener transformer = new DisableBetweenDatesListener(clock);
+
+        Method method = MethodAnnotatedCases.class.getMethod(methodName);
+        IInvokedMethod invoked = mockInvokedMethod(method, MethodAnnotatedCases.class);
+        ITestResult result = Mockito.mock(ITestResult.class);
+
+        // Act & Assert
+        if (expectedException != null) {
+            assertThrows(expectedException, () -> transformer.beforeInvocation(invoked, result));
+        } else {
+            assertDoesNotThrow(() -> transformer.beforeInvocation(invoked, result));
+        }
+    }
+    //endregion Timezone tests
 
     /**
      * Creates a fixed clock set to 2026-02-16 for consistent testing.
      */
     private static Clock createFixedClock() {
-        return Clock.fixed(FIXED_DATE.atStartOfDay(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
+        return createFixedClock(ZoneId.systemDefault());
+    }
+
+    /**
+     * Creates a fixed clock set to 2026-02-16 in the specified timezone for consistent testing.
+     */
+    private static Clock createFixedClock(@NonNull ZoneId zone) {
+        return Clock.fixed(FIXED_DATE.atStartOfDay(zone).toInstant(), zone);
     }
 
     /**
      * Creates a mock IInvokedMethod for testing beforeInvocation.
      */
-    private static IInvokedMethod mockInvokedMethod(Method method, Class<?> testClass) {
+    private static IInvokedMethod mockInvokedMethod(@NonNull Method method, Class<?> testClass) {
         IInvokedMethod invoked = Mockito.mock(IInvokedMethod.class);
         ITestNGMethod testMethod = Mockito.mock(ITestNGMethod.class);
 

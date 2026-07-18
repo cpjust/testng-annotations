@@ -40,10 +40,9 @@ public class DisableBetweenDatesIT {
         testsRun.add(getCurrentMethodNameWithParams());
     }
 
-    // Use a past range so the test is not disabled by current date
-    @DisableBetweenDates(start = DATE_IN_PAST_START, end = DATE_IN_PAST_END, throwSkipException = true)
+    @DisableBetweenDates(start = DATE_IN_FUTURE_START, end = DATE_IN_FUTURE_END, timezone = "GMT", throwSkipException = false)
     @Test
-    public void oneAnnotation_pastDisabledRange_throwSkipException_isRun() {
+    public void oneAnnotationWithTimezone_futureDisabledRange_isRun() {
         testsRun.add(getCurrentMethodNameWithParams());
     }
 
@@ -51,6 +50,14 @@ public class DisableBetweenDatesIT {
     @SuppressWarnings({SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED, METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS})
     @Test
     public void oneAnnotation_currentDateDisabledRange_isNotRun() {
+        testsRun.add(getCurrentMethodNameWithParams());
+        TestUtils.failTestThatShouldNotRun();
+    }
+
+    @DisableBetweenDates(start = DATE_IN_PAST_START, end = DATE_IN_FUTURE_END, timezone = "America/Chicago", throwSkipException = false)
+    @SuppressWarnings({SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED, METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS})
+    @Test
+    public void oneAnnotationWithTimezone_currentDateDisabledRange_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();
     }
@@ -74,6 +81,19 @@ public class DisableBetweenDatesIT {
     }
 
     //region Tests with throwSkipException = true
+    // Use a past range so the test is not disabled by current date
+    @DisableBetweenDates(start = DATE_IN_PAST_START, end = DATE_IN_PAST_END, throwSkipException = true)
+    @Test
+    public void oneAnnotation_pastDisabledRange_throwSkipException_isRun() {
+        testsRun.add(getCurrentMethodNameWithParams());
+    }
+
+    @DisableBetweenDates(start = DATE_IN_PAST_START, end = DATE_IN_PAST_END, timezone = "-08:00", throwSkipException = true)
+    @Test
+    public void oneAnnotationWithTimezone_pastDisabledRange_throwSkipException_isRun() {
+        testsRun.add(getCurrentMethodNameWithParams());
+    }
+
     @DisableBetweenDates(start = DATE_IN_PAST_START, end = DATE_IN_FUTURE_END, throwSkipException = true)
     @SuppressWarnings({SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED, METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS})
     @Test
@@ -106,7 +126,9 @@ public class DisableBetweenDatesIT {
         List<String> expected = List.of(
                 "noAnnotation_isRun()",
                 "oneAnnotation_futureDisabledRange_isRun()",
-                "oneAnnotation_pastDisabledRange_throwSkipException_isRun()"
+                "oneAnnotationWithTimezone_futureDisabledRange_isRun()",
+                "oneAnnotation_pastDisabledRange_throwSkipException_isRun()",
+                "oneAnnotationWithTimezone_pastDisabledRange_throwSkipException_isRun()"
         );
 
         assertThat("Wrong number of tests run!", testsRun, hasSize(expected.size()));
@@ -117,6 +139,7 @@ public class DisableBetweenDatesIT {
     public void verifyDisabledTests() {
         List<String> expectedDisabled = List.of(
                 "oneAnnotation_currentDateDisabledRange_isNotRun()",
+                "oneAnnotationWithTimezone_currentDateDisabledRange_isNotRun()",
                 "twoAnnotations_firstAnnotationShouldExclude_isNotRun()",
                 "twoAnnotations_secondAnnotationShouldExclude_isNotRun()",
                 // throwSkipException-based disabled tests
