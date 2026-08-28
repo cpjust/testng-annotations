@@ -47,7 +47,7 @@ public class ExcludeOnEnvListener extends EnvListenerBase implements IMethodInte
                 log.debug("-> adding method because it doesn't exclude the current environment.");
                 result.add(methodInstance);
             } else {
-                log.debug("-> method NOT added due to environment exclusion.");
+                log.info("-> method NOT added due to environment exclusion.");
             }
         }
 

@@ -57,7 +57,7 @@ public class DisableBetweenTimesListener implements IInvokedMethodListener {
                 || isDisabledByAnnotation(method.getTestMethod().getRealClass(), true);
 
         if (shouldDisable) {
-            log.debug("Skipped {}.{} via annotation @DisableBetweenTimes because time is between specified range",
+            log.info("Skipped {}.{} via annotation @DisableBetweenTimes because time is between specified range",
                     method.getTestMethod().getRealClass().getSimpleName(), method.getTestMethod().getMethodName());
             throw new SkipException("Skipped via annotation @DisableBetweenTimes because time is between specified range");
         }
@@ -82,7 +82,7 @@ public class DisableBetweenTimesListener implements IInvokedMethodListener {
                 || isDisabledByAnnotation(testClass, false);
 
         if (shouldDisable) {
-            log.debug("Setting test '{}' enabled=false based on DisableBetweenTimes check", testMethod.getName());
+            log.info("Setting test '{}' enabled=false based on DisableBetweenTimes check", testMethod.getName());
             annotation.setEnabled(false);
         } else {
             log.debug("Test '{}' is not disabled based on DisableBetweenTimes check", testMethod.getName());

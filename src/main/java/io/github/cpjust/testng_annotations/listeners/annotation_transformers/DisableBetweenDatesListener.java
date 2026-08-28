@@ -55,7 +55,7 @@ public class DisableBetweenDatesListener implements IInvokedMethodListener {
                 || isDisabledByAnnotation(method.getTestMethod().getRealClass(), true);
 
         if (shouldDisable) {
-            log.debug("Skipped {}.{} via annotation @DisableBetweenDates because date is between specified range",
+            log.info("Skipped {}.{} via annotation @DisableBetweenDates because date is between specified range",
                     method.getTestMethod().getRealClass().getSimpleName(), method.getTestMethod().getMethodName());
             throw new SkipException("Skipped via annotation @DisableBetweenDates because date is between specified range");
         }
@@ -80,7 +80,7 @@ public class DisableBetweenDatesListener implements IInvokedMethodListener {
                 || isDisabledByAnnotation(testClass, false);
 
         if (shouldDisable) {
-            log.debug("Setting test '{}' enabled=false based on DisableBetweenDates check", testMethod.getName());
+            log.info("Setting test '{}' enabled=false based on DisableBetweenDates check", testMethod.getName());
             annotation.setEnabled(false);
         }
     }

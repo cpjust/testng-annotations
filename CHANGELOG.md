@@ -6,11 +6,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.5.0] - 2026-08-24
+## [1.5.0] - 2026-08-28
 ### Added
 - Added a `@DisableBetweenTimes` annotation to disable tests between specific times every day, with an optional `timezone` parameter
   to specify the timezone for time calculations that defaults to system default timezone if not specified.
-- Added a `DisableBetweenTimesListener` to handle the `@DisableBetweenTimes` annotation and disable tests based on time ranges.
+- Added a `DisableBetweenTimesListener` to handle the `@DisableBetweenTimes` annotation and disable tests based on time ranges, and log the exclusions at INFO level.
+
+### Changed
+- Improved `ExcludeOnEnvListener`, `IncludeOnEnvListener` & `DisableBetweenDatesListener` logging so excluded tests are reported at INFO level to make environment-based filtering easier to diagnose.
 
 ## [1.4.1] - 2026-07-16
 ### Added

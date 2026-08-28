@@ -9,8 +9,8 @@ import org.testng.IMethodInterceptor;
 import org.testng.ITestContext;
 
 import java.lang.reflect.AnnotatedElement;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * A listener for TestNG tests that are annotated with <code>@IncludeOnEnv</code>.
@@ -30,9 +30,18 @@ public class IncludeOnEnvListener extends EnvListenerBase implements IMethodInte
      */
     @Override
     public List<IMethodInstance> intercept(List<IMethodInstance> methods, ITestContext context) {
-        return methods.stream()
-                .filter(this::shouldIncludeTest)
-                .collect(Collectors.toList());
+        List<IMethodInstance> result = new ArrayList<>();
+
+        for (IMethodInstance methodInstance : methods) {
+            if (shouldIncludeTest(methodInstance)) {
+                log.debug("-> adding method because it matches the current environment.");
+                result.add(methodInstance);
+            } else {
+                log.info("-> method NOT added because it does not match the current environment.");
+            }
+        }
+
+        return result;
     }
 
     /**

@@ -490,7 +490,7 @@ public class BusinessHoursMaintenance {
     
     @Test
     @DisableBetweenTimes(start = "12:00:00", end = "13:00:00")
-    public void lunchTimeOnlyTest() {
+    public void neverDuringLunchTest() {
         // Method-level annotation overrides class-level
         // This test is only disabled during lunch time (noon to 1 PM).
     }
