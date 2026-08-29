@@ -2,6 +2,7 @@ package io.github.cpjust.testng_annotations.listeners.annotation_transformers;
 
 import io.github.cpjust.testng_annotations.annotations.CsvSource;
 import io.github.cpjust.testng_annotations.annotations.DisableBetweenDates;
+import io.github.cpjust.testng_annotations.annotations.DisableBetweenTimes;
 import io.github.cpjust.testng_annotations.annotations.ValueSource;
 import io.github.cpjust.testng_annotations.annotations.NullSource;
 import io.github.cpjust.testng_annotations.annotations.EmptySource;
@@ -18,7 +19,7 @@ import java.util.Map;
 /**
  * TestNG annotation transformer that processes all custom annotation transformers like: {@link CsvSource},
  * {@link ValueSource}, {@link NullSource}, {@link EmptySource}, {@link NullAndEmptySource},
- * and {@link DisableBetweenDates} to set up data providers or disable tests as needed.
+ * {@link DisableBetweenDates}, and {@link DisableBetweenTimes} to set up data providers or disable tests as needed.
  * <p>
  * Since you cannot use multiple transformers in TestNG, you need to register this transformer if you want to use multiple
  * of the provided annotations. You can do this by adding the fully qualified class name to a file named
@@ -33,6 +34,7 @@ public class AllAnnotationTransformers extends SourceListenerBase implements IAn
     );
 
     private final DisableBetweenDatesListener disableBetweenDatesListener = new DisableBetweenDatesListener();
+    private final DisableBetweenTimesListener disableBetweenTimesListener = new DisableBetweenTimesListener();
 
     /**
      * Constructs the transformer with all supported data providers and other transformations.
@@ -43,8 +45,8 @@ public class AllAnnotationTransformers extends SourceListenerBase implements IAn
 
     /**
      * Transforms test methods annotated with {@link CsvSource}, {@link ValueSource}, {@link NullSource},
-     * {@link EmptySource}, {@link NullAndEmptySource}, and {@link DisableBetweenDates} to use a data provider
-     * or disable tests based on date ranges.
+     * {@link EmptySource}, {@link NullAndEmptySource}, {@link DisableBetweenDates}, and {@link DisableBetweenTimes}
+     * to use a data provider or disable tests based on date/time ranges.
      *
      * @param annotation      The TestNG annotation being transformed.
      * @param testClass       The test class.
@@ -58,8 +60,9 @@ public class AllAnnotationTransformers extends SourceListenerBase implements IAn
             return; // Nothing to do if there's no test method.
         }
 
-        // Handle DisableBetweenDates transformation first
+        // Handle DisableBetweenDates and DisableBetweenTimes transformations first
         disableBetweenDatesListener.transform(annotation, testClass, testMethod);
+        disableBetweenTimesListener.transform(annotation, testClass, testMethod);
 
         // Handle data provider transformations
         throwIfDataProviderNotAllowed(annotation, testMethod);
