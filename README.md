@@ -22,17 +22,27 @@ The testng-annotations project contains some extra annotations that are useful w
 2. Register listeners (pick one):
 - Add to test class:
 ```java
-@Listeners({IncludeOnEnvListener.class, ExcludeOnEnvListener.class})
+@Listeners({IncludeOnEnvListener.class, ExcludeOnEnvListener.class, FailFastListener.class})
 ```
 - OR add to `src/test/resources/META-INF/services/org.testng.ITestNGListener`:
 ```
 io.github.cpjust.testng_annotations.listeners.IncludeOnEnvListener
 io.github.cpjust.testng_annotations.listeners.ExcludeOnEnvListener
+io.github.cpjust.testng_annotations.listeners.FailFastListener
 io.github.cpjust.testng_annotations.listeners.annotation_transformers.AllAnnotationTransformers
 ```
 
 3. Use annotations in tests:
 ```java
+// Stop the suite immediately if setup fails
+@BeforeSuite
+@FailFast
+public void verifyEnvironment() {
+    if (!"ready".equals(System.getProperty("test.status"))) {
+        throw new IllegalStateException("Environment not ready");
+    }
+}
+
 // Skip in production
 @ExcludeOnEnv("prod")
 @Test
@@ -85,6 +95,20 @@ public void testWithInts(int value) {
 ```
 
 ## Annotations
+
+### @FailFast
+Marks a TestNG configuration or test method as the trigger for fail-fast behavior. When the annotated method fails,
+all subsequent TestNG tests and configuration methods are skipped, even if they declare `alwaysRun = true`.
+This is especially useful for a failing `@BeforeSuite` setup method that should prevent the rest of the suite from running.
+
+Example:
+```java
+@BeforeSuite
+@FailFast
+public void verifyEnvironment() {
+    // Failing here should stop the remainder of the suite.
+}
+```
 
 ### @ExcludeOnEnv
 This annotation will exclude tests if the current environment (as defined by a Java property) matches one of the
