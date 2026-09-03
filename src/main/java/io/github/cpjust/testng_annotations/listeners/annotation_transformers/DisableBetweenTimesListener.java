@@ -1,6 +1,7 @@
 package io.github.cpjust.testng_annotations.listeners.annotation_transformers;
 
 import io.github.cpjust.testng_annotations.annotations.DisableBetweenTimes;
+import io.github.cpjust.testng_annotations.util.TestNGMethodUtils;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.IInvokedMethod;
@@ -53,7 +54,7 @@ public class DisableBetweenTimesListener implements IInvokedMethodListener {
         log.debug("Checking @DisableBetweenTimes on method {}.{}",
                 method.getTestMethod().getRealClass().getSimpleName(), method.getTestMethod().getMethodName());
 
-        boolean shouldDisable = isDisabledByAnnotation(method.getTestMethod().getConstructorOrMethod().getMethod(), true)
+        boolean shouldDisable = isDisabledByAnnotation(TestNGMethodUtils.getMethod(method.getTestMethod()), true)
                 || isDisabledByAnnotation(method.getTestMethod().getRealClass(), true);
 
         if (shouldDisable) {
@@ -167,8 +168,8 @@ public class DisableBetweenTimesListener implements IInvokedMethodListener {
         List<DisableBetweenTimes> methodAnnotations = getDisableBetweenTimesAnnotations(method, withSkipException);
 
         if (!methodAnnotations.isEmpty()) {
-            log.debug("Method {}.{} has @DisableBetweenTimes annotations with throwSkipException={}, checking if any match",
-                    method.getDeclaringClass().getSimpleName(), method.getName(), withSkipException);
+            log.debug("Method {} has @DisableBetweenTimes annotations with throwSkipException={}, checking if any match",
+                    TestNGMethodUtils.methodName(method), withSkipException);
 
             return methodAnnotations.stream()
                     .anyMatch(this::isNowInRange);

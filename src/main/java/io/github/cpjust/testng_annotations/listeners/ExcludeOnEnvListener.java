@@ -1,6 +1,7 @@
 package io.github.cpjust.testng_annotations.listeners;
 
 import io.github.cpjust.testng_annotations.annotations.ExcludeOnEnv;
+import io.github.cpjust.testng_annotations.util.TestNGMethodUtils;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,7 @@ public class ExcludeOnEnvListener extends EnvListenerBase implements IMethodInte
 
         for (IMethodInstance methodInstance : methods) {
             Class<?> testClass = methodInstance.getMethod().getRealClass();
-            Method testMethod = methodInstance.getMethod().getConstructorOrMethod().getMethod();
+            Method testMethod = TestNGMethodUtils.getMethod(methodInstance);
 
             Objects.requireNonNull(testClass, "testClass was null!");
             Objects.requireNonNull(testMethod, "testMethod was null!");

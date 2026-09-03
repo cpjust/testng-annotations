@@ -1,6 +1,7 @@
 package io.github.cpjust.testng_annotations.listeners;
 
 import io.github.cpjust.testng_annotations.annotations.IncludeOnEnv;
+import io.github.cpjust.testng_annotations.util.TestNGMethodUtils;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +59,7 @@ public class IncludeOnEnvListener extends EnvListenerBase implements IMethodInte
      */
     private boolean shouldIncludeTest(@NonNull IMethodInstance methodInstance) {
         AnnotatedElement testClass = methodInstance.getMethod().getRealClass();
-        AnnotatedElement testMethod = methodInstance.getMethod().getConstructorOrMethod().getMethod();
+        AnnotatedElement testMethod = TestNGMethodUtils.getMethod(methodInstance);
 
         // Tests should be included using the following rules:
         // |                     | No class annotation: | Include by class: | Exclude by class: |
@@ -81,9 +82,8 @@ public class IncludeOnEnvListener extends EnvListenerBase implements IMethodInte
             log.debug("*** hasAnnotationOnClass: {}, hasAnnotationOnTest: {}, shouldIncludeClass: {}, shouldIncludeMethod: {}",
                     hasAnnotationOnClass, hasAnnotationOnTest, shouldIncludeClass, shouldIncludeMethod);
 
-            log.debug("Test {}.{} should {}be included",
-                    methodInstance.getMethod().getConstructorOrMethod().getDeclaringClass().getSimpleName(),
-                    methodInstance.getMethod().getConstructorOrMethod().getMethod().getName(),
+            log.debug("Test {} should {}be included",
+                    TestNGMethodUtils.methodName(TestNGMethodUtils.getMethod(methodInstance)),
                     shouldInclude ? "" : "NOT ");
         }
 

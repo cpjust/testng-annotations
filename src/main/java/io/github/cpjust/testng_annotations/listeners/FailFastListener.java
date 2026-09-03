@@ -1,6 +1,7 @@
 package io.github.cpjust.testng_annotations.listeners;
 
 import io.github.cpjust.testng_annotations.annotations.FailFast;
+import io.github.cpjust.testng_annotations.util.TestNGMethodUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.IConfigurationListener;
 import org.testng.IInvokedMethod;
@@ -26,22 +27,39 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     private static final AtomicBoolean failFastTriggered = new AtomicBoolean(false);
     private static final AtomicReference<String> triggerMessage = new AtomicReference<>();
     private static final AtomicReference<String> activeFailFastMethod = new AtomicReference<>();
+    private static final AtomicReference<String> activeSuiteName = new AtomicReference<>();
+
+    /**
+     * Tracks the active suite name for the current thread. This is used to reset the fail-fast state when a new suite starts.
+     *
+     * @param result the test result from which to extract the suite name.
+     */
+    private static void trackSuite(ITestResult result) {
+        if ((result == null) || (result.getTestContext() == null)) {
+            return;
+        }
+
+        String suiteName = result.getTestContext().getName();
+        if (activeSuiteName.get() == null) {
+            activeSuiteName.set(suiteName);
+        }
+    }
 
     /**
      * Builds a human-readable message for the method that triggered fail-fast.
      *
-     * @param result the result from the failing method
-     * @return a descriptive message
+     * @param result the result from the failing method.
+     * @return a descriptive message about the method and the reason for failure.
      */
     private static String makeTriggerMessage(ITestResult result) {
         if (result == null) {
             return "(no details)";
         }
 
-        Method method = result.getMethod().getConstructorOrMethod().getMethod();
+        Method method = TestNGMethodUtils.getMethod(result);
         String methodName = (method == null)
                 ? result.getMethod().getMethodName()
-                : method.getDeclaringClass().getSimpleName() + "." + method.getName();
+                : TestNGMethodUtils.methodName(method);
         Throwable throwable = result.getThrowable();
         String reason = (throwable == null)
                 ? "failed"
@@ -71,7 +89,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         try {
-            return hasFailFastAnnotation(result.getMethod().getConstructorOrMethod().getMethod());
+            return hasFailFastAnnotation(TestNGMethodUtils.getMethod(result));
         } catch (RuntimeException ex) {
             log.debug("Unable to inspect method for @FailFast annotation.", ex);
             return false;
@@ -89,7 +107,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
             return "";
         }
 
-        return method.getTestMethod().getRealClass().getName() + "." + method.getTestMethod().getMethodName();
+        return TestNGMethodUtils.methodName(method.getTestMethod());
     }
 
     /**
@@ -117,21 +135,24 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
             return;
         }
 
-        Method realMethod = method.getTestMethod().getConstructorOrMethod().getMethod();
+        Method realMethod = TestNGMethodUtils.getMethod(method.getTestMethod());
         if (hasFailFastAnnotation(realMethod)) {
             activeFailFastMethod.set(currentMethod);
             failFastTriggered.set(true);
-            log.debug("Fail-fast configured for {}", activeFailFastMethodIdentity());
+            if (testResult != null && testResult.getTestContext() != null) {
+                activeSuiteName.compareAndSet(null, testResult.getTestContext().getName());
+            }
+            log.debug("Fail-fast armed for {}", activeFailFastMethodIdentity());
         }
     }
 
     @Override
     public void beforeConfiguration(ITestResult result) {
-        if (result == null || result.getMethod() == null) {
+        if ((result == null) || (result.getMethod() == null)) {
             return;
         }
 
-        String currentMethod = result.getMethod().getRealClass().getName() + "." + result.getMethod().getMethodName();
+        String currentMethod = TestNGMethodUtils.methodName(result);
         if (failFastTriggered.get()) {
             if (!Objects.equals(activeFailFastMethodIdentity(), currentMethod)) {
                 String message = "Skipped due to fail-fast triggered by: " + triggerMessage.get();
@@ -141,21 +162,22 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
             return;
         }
 
-        Method realMethod = result.getMethod().getConstructorOrMethod().getMethod();
+        Method realMethod = TestNGMethodUtils.getMethod(result);
         if (hasFailFastAnnotation(realMethod)) {
             activeFailFastMethod.set(currentMethod);
             failFastTriggered.set(true);
-            log.debug("Fail-fast configured for {}", activeFailFastMethodIdentity());
+            trackSuite(result);
+            log.debug("Fail-fast armed for {}", activeFailFastMethodIdentity());
         }
     }
 
     @Override
     public void beforeConfiguration(ITestResult result, ITestNGMethod method) {
-        if (result == null || method == null) {
+        if ((result == null) || (method == null)) {
             return;
         }
 
-        String currentMethod = method.getRealClass().getName() + "." + method.getMethodName();
+        String currentMethod = TestNGMethodUtils.methodName(method);
         if (failFastTriggered.get()) {
             if (!Objects.equals(activeFailFastMethodIdentity(), currentMethod)) {
                 String message = "Skipped due to fail-fast triggered by: " + triggerMessage.get();
@@ -165,21 +187,22 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
             return;
         }
 
-        Method realMethod = method.getConstructorOrMethod().getMethod();
+        Method realMethod = TestNGMethodUtils.getMethod(method);
         if (hasFailFastAnnotation(realMethod)) {
             activeFailFastMethod.set(currentMethod);
             failFastTriggered.set(true);
-            log.debug("Fail-fast configured for {}", activeFailFastMethodIdentity());
+            trackSuite(result);
+            log.debug("Fail-fast armed for {}", activeFailFastMethodIdentity());
         }
     }
 
     @Override
     public void afterInvocation(IInvokedMethod method, ITestResult testResult) {
-        if (method == null || method.getTestMethod() == null) {
+        if ((method == null) || (method.getTestMethod() == null)) {
             return;
         }
 
-        Method realMethod = method.getTestMethod().getConstructorOrMethod().getMethod();
+        Method realMethod = TestNGMethodUtils.getMethod(method.getTestMethod());
         if (!hasFailFastAnnotation(realMethod)) {
             return;
         }
@@ -199,7 +222,6 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     public void onConfigurationFailure(ITestResult result) {
         if (hasFailFastAnnotation(result)) {
             triggerMessage.set(makeTriggerMessage(result));
-            failFastTriggered.set(true);
             log.warn("Fail-fast triggered: {}", triggerMessage.get());
         }
     }
@@ -208,23 +230,30 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     public void onTestFailure(ITestResult result) {
         if (hasFailFastAnnotation(result)) {
             triggerMessage.set(makeTriggerMessage(result));
-            failFastTriggered.set(true);
             log.warn("Fail-fast triggered: {}", triggerMessage.get());
         }
     }
 
     @Override
     public void onStart(ITestContext context) {
-        failFastTriggered.set(false);
-        triggerMessage.set(null);
-        activeFailFastMethod.set(null);
+        String suiteName = (context == null) ? "" : context.getName();
+        if (!Objects.equals(activeSuiteName.get(), suiteName)) {
+            failFastTriggered.set(false);
+            triggerMessage.set(null);
+            activeFailFastMethod.set(null);
+            activeSuiteName.set(suiteName);
+        }
     }
 
     @Override
     public void onFinish(ITestContext context) {
-        failFastTriggered.set(false);
-        triggerMessage.set(null);
-        activeFailFastMethod.set(null);
+        String suiteName = (context == null) ? "" : context.getName();
+        if (Objects.equals(activeSuiteName.get(), suiteName)) {
+            failFastTriggered.set(false);
+            triggerMessage.set(null);
+            activeFailFastMethod.set(null);
+            activeSuiteName.set(null);
+        }
     }
 
     @Override

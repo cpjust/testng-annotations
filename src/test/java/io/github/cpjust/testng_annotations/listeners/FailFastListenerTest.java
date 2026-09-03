@@ -52,6 +52,8 @@ class FailFastListenerTest {
 
         testng.run();
 
+        assertFalse(SampleFailFastTest.beforeClassRan.get(),
+                "BeforeClass should not run when fail-fast is triggered by a failing @BeforeSuite");
         assertFalse(SampleFailFastTest.testRan.get(),
                 "Test should not run when fail-fast is triggered by a failing @BeforeSuite");
         assertThat("Fail-fast should record the original configuration failure.",
