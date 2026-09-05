@@ -83,7 +83,7 @@ public class IncludeOnEnvListener extends EnvListenerBase implements IMethodInte
                     hasAnnotationOnClass, hasAnnotationOnTest, shouldIncludeClass, shouldIncludeMethod);
 
             log.debug("Test {} should {}be included",
-                    TestNGMethodUtils.methodName(TestNGMethodUtils.getMethod(methodInstance)),
+                    TestNGMethodUtils.getMethodName(TestNGMethodUtils.getMethod(methodInstance)),
                     shouldInclude ? "" : "NOT ");
         }
 

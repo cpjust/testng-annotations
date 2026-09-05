@@ -169,7 +169,7 @@ public class DisableBetweenTimesListener implements IInvokedMethodListener {
 
         if (!methodAnnotations.isEmpty()) {
             log.debug("Method {} has @DisableBetweenTimes annotations with throwSkipException={}, checking if any match",
-                    TestNGMethodUtils.methodName(method), withSkipException);
+                    TestNGMethodUtils.getMethodName(method), withSkipException);
 
             return methodAnnotations.stream()
                     .anyMatch(this::isNowInRange);

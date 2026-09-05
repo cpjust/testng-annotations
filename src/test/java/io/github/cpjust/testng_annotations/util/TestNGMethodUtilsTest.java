@@ -77,22 +77,22 @@ class TestNGMethodUtilsTest {
     }
 
     @Test
-    void methodName_whenNullOrMethodProvided_thenFormatConsistently() throws Exception {
-        assertEquals("", TestNGMethodUtils.methodName((Method) null),
+    void getMethodName_whenNullOrMethodProvided_thenFormatConsistently() throws Exception {
+        assertEquals("", TestNGMethodUtils.getMethodName((Method) null),
                 "Null methods should format to an empty string");
 
         Method method = SampleTarget.class.getMethod("sampleMethod");
-        assertEquals(SAMPLE_TARGET_SAMPLE_METHOD, TestNGMethodUtils.methodName(method),
+        assertEquals(SAMPLE_TARGET_SAMPLE_METHOD, TestNGMethodUtils.getMethodName(method),
                 "Method formatting should use the declaring class simple name and method name");
 
         ITestNGMethod testNgMethod = Mockito.mock(ITestNGMethod.class);
         when(testNgMethod.getConstructorOrMethod()).thenReturn(new ConstructorOrMethod(method));
-        assertEquals(SAMPLE_TARGET_SAMPLE_METHOD, TestNGMethodUtils.methodName(testNgMethod),
+        assertEquals(SAMPLE_TARGET_SAMPLE_METHOD, TestNGMethodUtils.getMethodName(testNgMethod),
                 "ITestNGMethod formatting should match the Java method format");
 
         ITestResult result = Mockito.mock(ITestResult.class);
         when(result.getMethod()).thenReturn(testNgMethod);
-        assertEquals(SAMPLE_TARGET_SAMPLE_METHOD, TestNGMethodUtils.methodName(result),
+        assertEquals(SAMPLE_TARGET_SAMPLE_METHOD, TestNGMethodUtils.getMethodName(result),
                 "ITestResult formatting should match the Java method format");
     }
 }

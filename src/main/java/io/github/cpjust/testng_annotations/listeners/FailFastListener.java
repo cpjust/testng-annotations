@@ -59,7 +59,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         Method method = TestNGMethodUtils.getMethod(result);
         String methodName = (method == null)
                 ? result.getMethod().getMethodName()
-                : TestNGMethodUtils.methodName(method);
+                : TestNGMethodUtils.getMethodName(method);
         Throwable throwable = result.getThrowable();
         String reason = (throwable == null)
                 ? "failed"
@@ -107,7 +107,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
             return "";
         }
 
-        return TestNGMethodUtils.methodName(method.getTestMethod());
+        return TestNGMethodUtils.getMethodName(method.getTestMethod());
     }
 
     /**
@@ -152,7 +152,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
             return;
         }
 
-        String currentMethod = TestNGMethodUtils.methodName(result);
+        String currentMethod = TestNGMethodUtils.getMethodName(result);
         if (failFastTriggered.get()) {
             if (!Objects.equals(activeFailFastMethodIdentity(), currentMethod)) {
                 String message = "Skipped due to fail-fast triggered by: " + triggerMessage.get();
@@ -177,7 +177,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
             return;
         }
 
-        String currentMethod = TestNGMethodUtils.methodName(method);
+        String currentMethod = TestNGMethodUtils.getMethodName(method);
         if (failFastTriggered.get()) {
             if (!Objects.equals(activeFailFastMethodIdentity(), currentMethod)) {
                 String message = "Skipped due to fail-fast triggered by: " + triggerMessage.get();
