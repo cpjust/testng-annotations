@@ -28,6 +28,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     private static final AtomicReference<String> triggerMessage = new AtomicReference<>();
     private static final AtomicReference<String> activeFailFastMethod = new AtomicReference<>();
     private static final AtomicReference<String> activeSuiteName = new AtomicReference<>();
+    private static final AtomicReference<Class<?>> activeFailFastTriggerClass = new AtomicReference<>();
 
     /**
      * Tracks the active suite name for the current thread. This is used to reset the fail-fast state when a new suite starts.
@@ -126,8 +127,16 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         String currentMethod = methodIdentity(method);
+        Method realMethod = TestNGMethodUtils.getMethod(method.getTestMethod());
+
+        // If a fail-fast trigger is recorded, only skip methods that belong to the trigger class (or its subclasses)
         if ((triggerMessage.get() != null) || failFastTriggered.get()) {
-            if (!Objects.equals(activeFailFastMethodIdentity(), currentMethod)) {
+            Class<?> triggerClass = activeFailFastTriggerClass.get();
+            Class<?> currentDeclaring = (realMethod == null) ? null : realMethod.getDeclaringClass();
+            boolean shouldSkip = (triggerClass != null) && (currentDeclaring != null) && triggerClass.isAssignableFrom(currentDeclaring)
+                    && !Objects.equals(activeFailFastMethodIdentity(), currentMethod);
+
+            if (shouldSkip) {
                 String message = "Skipped due to fail-fast triggered by: " + triggerMessage.get();
                 log.debug("{} while invoking {}", message, currentMethod);
                 throw new SkipException(message);
@@ -135,7 +144,6 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
             return;
         }
 
-        Method realMethod = TestNGMethodUtils.getMethod(method.getTestMethod());
         if (hasFailFastAnnotation(realMethod)) {
             activeFailFastMethod.set(currentMethod);
             failFastTriggered.set(true);
@@ -153,8 +161,15 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         String currentMethod = TestNGMethodUtils.getMethodName(result);
+        Method realMethod = TestNGMethodUtils.getMethod(result);
+
         if ((triggerMessage.get() != null) || failFastTriggered.get()) {
-            if (!Objects.equals(activeFailFastMethodIdentity(), currentMethod)) {
+            Class<?> triggerClass = activeFailFastTriggerClass.get();
+            Class<?> currentDeclaring = (realMethod == null) ? null : realMethod.getDeclaringClass();
+            boolean shouldSkip = (triggerClass != null) && (currentDeclaring != null) && triggerClass.isAssignableFrom(currentDeclaring)
+                    && !Objects.equals(activeFailFastMethodIdentity(), currentMethod);
+
+            if (shouldSkip) {
                 String message = "Skipped due to fail-fast triggered by: " + triggerMessage.get();
                 log.debug("{} while invoking {}", message, currentMethod);
                 throw new SkipException(message);
@@ -162,7 +177,6 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
             return;
         }
 
-        Method realMethod = TestNGMethodUtils.getMethod(result);
         if (hasFailFastAnnotation(realMethod)) {
             activeFailFastMethod.set(currentMethod);
             failFastTriggered.set(true);
@@ -178,8 +192,15 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         String currentMethod = TestNGMethodUtils.getMethodName(method);
+        Method realMethod = TestNGMethodUtils.getMethod(method);
+
         if ((triggerMessage.get() != null) || failFastTriggered.get()) {
-            if (!Objects.equals(activeFailFastMethodIdentity(), currentMethod)) {
+            Class<?> triggerClass = activeFailFastTriggerClass.get();
+            Class<?> currentDeclaring = (realMethod == null) ? null : realMethod.getDeclaringClass();
+            boolean shouldSkip = (triggerClass != null) && (currentDeclaring != null) && triggerClass.isAssignableFrom(currentDeclaring)
+                    && !Objects.equals(activeFailFastMethodIdentity(), currentMethod);
+
+            if (shouldSkip) {
                 String message = "Skipped due to fail-fast triggered by: " + triggerMessage.get();
                 log.debug("{} while invoking {}", message, currentMethod);
                 throw new SkipException(message);
@@ -187,7 +208,6 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
             return;
         }
 
-        Method realMethod = TestNGMethodUtils.getMethod(method);
         if (hasFailFastAnnotation(realMethod)) {
             activeFailFastMethod.set(currentMethod);
             failFastTriggered.set(true);
@@ -209,6 +229,9 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
 
         if ((testResult != null) && (testResult.getStatus() == ITestResult.FAILURE)) {
             triggerMessage.set(makeTriggerMessage(testResult));
+            // record the failing method's declaring class so skipping can be limited to that class/subclasses
+            Method failing = TestNGMethodUtils.getMethod(testResult);
+            activeFailFastTriggerClass.set((failing == null) ? null : failing.getDeclaringClass());
             log.warn("Fail-fast triggered: {}", triggerMessage.get());
             return;
         }
@@ -216,12 +239,15 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         failFastTriggered.set(false);
         triggerMessage.set(null);
         activeFailFastMethod.set(null);
+        activeFailFastTriggerClass.set(null);
     }
 
     @Override
     public void onConfigurationFailure(ITestResult result) {
         if (hasFailFastAnnotation(result)) {
             triggerMessage.set(makeTriggerMessage(result));
+            Method failing = TestNGMethodUtils.getMethod(result);
+            activeFailFastTriggerClass.set((failing == null) ? null : failing.getDeclaringClass());
             log.warn("Fail-fast triggered: {}", triggerMessage.get());
         }
     }
@@ -230,6 +256,8 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     public void onTestFailure(ITestResult result) {
         if (hasFailFastAnnotation(result)) {
             triggerMessage.set(makeTriggerMessage(result));
+            Method failing = TestNGMethodUtils.getMethod(result);
+            activeFailFastTriggerClass.set((failing == null) ? null : failing.getDeclaringClass());
             log.warn("Fail-fast triggered: {}", triggerMessage.get());
         }
     }

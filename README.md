@@ -98,15 +98,28 @@ public void testWithInts(int value) {
 
 ### @FailFast
 Marks a TestNG configuration or test method as the trigger for fail-fast behavior. When the annotated method fails,
-all subsequent TestNG tests and configuration methods are skipped, even if they declare `alwaysRun = true`.
-This is especially useful for a failing `@BeforeSuite` setup method that should prevent the rest of the suite from running.
+subsequent TestNG tests and configuration methods in the same class (and in subclasses of that class) will be skipped,
+even if they declare `alwaysRun = true`.
 
-Example:
+This scoped behavior prevents a failure in one test class from aborting unrelated test classes in the same suite. If you
+want suite-wide fail-fast behavior, annotate a shared base class (for example a base suite class) so the trigger class
+is the shared ancestor and skipping will apply to its subclasses (i.e. the whole suite hierarchy under that base).
+
+Example (class-scoped):
+```java
+@BeforeClass
+@FailFast
+public void ensureResource() {
+    // If this fails, only methods in this class and subclasses will be skipped
+}
+```
+
+Example (suite-scoped via shared base):
 ```java
 @BeforeSuite
 @FailFast
 public void verifyEnvironment() {
-    // Failing here should stop the remainder of the suite.
+    // Failing here will skip methods in the shared base class and its subclasses (broad scope)
 }
 ```
 
