@@ -126,7 +126,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         String currentMethod = methodIdentity(method);
-        if (failFastTriggered.get()) {
+        if ((triggerMessage.get() != null) || failFastTriggered.get()) {
             if (!Objects.equals(activeFailFastMethodIdentity(), currentMethod)) {
                 String message = "Skipped due to fail-fast triggered by: " + triggerMessage.get();
                 log.debug("{} while invoking {}", message, currentMethod);
@@ -153,7 +153,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         String currentMethod = TestNGMethodUtils.getMethodName(result);
-        if (failFastTriggered.get()) {
+        if ((triggerMessage.get() != null) || failFastTriggered.get()) {
             if (!Objects.equals(activeFailFastMethodIdentity(), currentMethod)) {
                 String message = "Skipped due to fail-fast triggered by: " + triggerMessage.get();
                 log.debug("{} while invoking {}", message, currentMethod);
@@ -178,7 +178,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         String currentMethod = TestNGMethodUtils.getMethodName(method);
-        if (failFastTriggered.get()) {
+        if ((triggerMessage.get() != null) || failFastTriggered.get()) {
             if (!Objects.equals(activeFailFastMethodIdentity(), currentMethod)) {
                 String message = "Skipped due to fail-fast triggered by: " + triggerMessage.get();
                 log.debug("{} while invoking {}", message, currentMethod);
