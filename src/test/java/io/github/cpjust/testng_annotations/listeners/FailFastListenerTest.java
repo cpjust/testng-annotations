@@ -4,6 +4,7 @@ import io.github.cpjust.testng_annotations.annotations.FailFast;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.testng.IInvokedMethod;
+import org.testng.ITestContext;
 import org.testng.ITestNGListener;
 import org.testng.ITestNGMethod;
 import org.testng.ITestResult;
@@ -147,6 +148,7 @@ class FailFastListenerTest {
     @Test
     void unitListener_whenFailFastAnnotatedMethodFails_thenListenerSkipsOtherConfigAndInvocationMethods() throws Exception {
         FailFastListener listener = new FailFastListener();
+        ITestContext context = Mockito.mock(ITestContext.class);
 
         // Arm the listener by invoking a real @FailFast method
         Method failMethod = SampleFailFastTest.class.getMethod("beforeSuite");
@@ -155,13 +157,13 @@ class FailFastListenerTest {
         when(invokedFail.getTestMethod()).thenReturn(failTnm);
         when(failTnm.getConstructorOrMethod()).thenReturn(new ConstructorOrMethod(failMethod));
 
-        listener.beforeInvocation(invokedFail, null);
-
-        // Simulate failure of the fail-fast method
         ITestResult failResult = Mockito.mock(ITestResult.class);
+        when(failResult.getTestContext()).thenReturn(context);
         when(failResult.getMethod()).thenReturn(failTnm);
         when(failResult.getThrowable()).thenReturn(new RuntimeException("boom"));
         when(failResult.getStatus()).thenReturn(ITestResult.FAILURE);
+
+        listener.beforeInvocation(invokedFail, failResult);
         listener.afterInvocation(invokedFail, failResult);
 
         // Methods to verify are skipped
@@ -177,12 +179,12 @@ class FailFastListenerTest {
             when(im.getTestMethod()).thenReturn(tnm);
             when(tnm.getConstructorOrMethod()).thenReturn(new ConstructorOrMethod(m));
 
-            // The listener should throw SkipException when trying to run these methods
-            assertThrows(SkipException.class, () -> listener.beforeInvocation(im, null),
-                    "Listener should skip invocation of " + name);
-
             ITestResult res = Mockito.mock(ITestResult.class);
             when(res.getMethod()).thenReturn(tnm);
+            when(res.getTestContext()).thenReturn(context);
+
+            assertThrows(SkipException.class, () -> listener.beforeInvocation(im, res),
+                    "Listener should skip invocation of " + name);
             assertThrows(SkipException.class, () -> listener.beforeConfiguration(res),
                     "Listener should skip configuration callback for " + name);
         }
