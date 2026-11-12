@@ -17,7 +17,7 @@ public final class TestNGMethodUtils {
     /**
      * Returns the reflected Java method for a TestNG method instance.
      *
-     * @param methodInstance the TestNG method instance.
+     * @param methodInstance The TestNG method instance.
      * @return the reflected method, or null when unavailable.
      */
     public static Method getMethod(IMethodInstance methodInstance) {
@@ -31,7 +31,7 @@ public final class TestNGMethodUtils {
     /**
      * Returns the reflected Java method for a TestNG method.
      *
-     * @param testNgMethod the TestNG method.
+     * @param testNgMethod The TestNG method.
      * @return the reflected method, or null when unavailable.
      */
     public static Method getMethod(ITestNGMethod testNgMethod) {
@@ -45,7 +45,7 @@ public final class TestNGMethodUtils {
     /**
      * Returns the reflected Java method for a TestNG test result.
      *
-     * @param result the TestNG result.
+     * @param result The TestNG result.
      * @return the reflected method, or null when unavailable.
      */
     public static Method getMethod(ITestResult result) {
@@ -59,7 +59,7 @@ public final class TestNGMethodUtils {
     /**
      * Produces a simple class-and-method name for logging.
      *
-     * @param method the method to format.
+     * @param method The method to format.
      * @return the class and method name, or an empty string when method is null.
      */
     public static String getMethodName(Method method) {
@@ -73,7 +73,7 @@ public final class TestNGMethodUtils {
     /**
      * Produces a simple class-and-method name for logging.
      *
-     * @param testNgMethod the TestNG method to format.
+     * @param testNgMethod The TestNG method to format.
      * @return the class and method name, or an empty string when unavailable.
      */
     public static String getMethodName(ITestNGMethod testNgMethod) {
@@ -83,7 +83,7 @@ public final class TestNGMethodUtils {
     /**
      * Produces a simple class-and-method name for logging.
      *
-     * @param result the TestNG result to format.
+     * @param result The TestNG result to format.
      * @return the class and method name, or an empty string when unavailable.
      */
     public static String getMethodName(ITestResult result) {
