@@ -38,30 +38,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     private static final String LOG_WHILE_INVOKING = "{} while invoking {}";
     private static final String LOG_SKIPPED_DUE_TO_FAIL_FAST_TRIGGERED_BY = "Skipped due to fail-fast triggered by: ";
 
-    /**
-     * Checks the active suite state and skips the current invocation when a fail-fast trigger is active.
-     * From the IInvokedMethodListener interface, this method is called before each configuration and test method invocation
-     * (irrespective of whether they pass/fail or get skipped), allowing the listener to prevent further execution of tests
-     * when a fail-fast condition has been triggered.
-     *
-     * @param method The invoked method.
-     * @param testResult The associated result.
-     */
-    @Override
-    public void beforeInvocation(IInvokedMethod method, ITestResult testResult) {
-        if (TestNGAttributeUtils.hasTestNGMethod(method)) {
-            return;
-        }
-
-        ITestContext context = TestNGAttributeUtils.testContextFor(testResult);
-        String suiteName = TestNGAttributeUtils.suiteNameFor(context);
-        String currentMethod = methodIdentity(method);
-        Method realMethod = TestNGMethodUtils.getMethod(method.getTestMethod());
-
-        setActiveSuiteName(suiteName, context);
-        skipOrSetActiveMethod(context, currentMethod, realMethod);
-    }
-
+    //region IConfigurationListener methods
     /**
      * Prevents configuration methods from running after a fail-fast trigger is active.
      *
@@ -104,6 +81,42 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     }
 
     /**
+     * Records a fail-fast trigger when a configuration method fails.
+     *
+     * @param result The configuration result.
+     */
+    @Override
+    public void onConfigurationFailure(ITestResult result) {
+        handleConfigOrTestFailure(result);
+    }
+    //endregion IConfigurationListener methods
+
+    //region IInvokedMethodListener methods
+    /**
+     * Checks the active suite state and skips the current invocation when a fail-fast trigger is active.
+     * From the IInvokedMethodListener interface, this method is called before each configuration and test method invocation
+     * (irrespective of whether they pass/fail or get skipped), allowing the listener to prevent further execution of tests
+     * when a fail-fast condition has been triggered.
+     *
+     * @param method The invoked method.
+     * @param testResult The associated result.
+     */
+    @Override
+    public void beforeInvocation(IInvokedMethod method, ITestResult testResult) {
+        if (TestNGAttributeUtils.hasTestNGMethod(method)) {
+            return;
+        }
+
+        ITestContext context = TestNGAttributeUtils.testContextFor(testResult);
+        String suiteName = TestNGAttributeUtils.suiteNameFor(context);
+        String currentMethod = methodIdentity(method);
+        Method realMethod = TestNGMethodUtils.getMethod(method.getTestMethod());
+
+        setActiveSuiteName(suiteName, context);
+        skipOrSetActiveMethod(context, currentMethod, realMethod);
+    }
+
+    /**
      * Records a fail-fast trigger when the annotated method fails and keeps the state active for the suite.
      *
      * @param method The invoked method.
@@ -137,17 +150,9 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
 
         clearFailFastState(context);
     }
+    //endregion IInvokedMethodListener methods
 
-    /**
-     * Records a fail-fast trigger when a configuration method fails.
-     *
-     * @param result The configuration result.
-     */
-    @Override
-    public void onConfigurationFailure(ITestResult result) {
-        handleConfigOrTestFailure(result);
-    }
-
+    //region ITestListener methods
     /**
      * Records a fail-fast trigger when a test method fails.
      *
@@ -219,6 +224,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     public void onTestFailedButWithinSuccessPercentage(ITestResult result) {
         // no-op
     }
+    //endregion ITestListener methods
 
     /**
      * Stores a fail-fast attribute in the thread-local state and the TestNG context.
