@@ -38,12 +38,16 @@ This project contains some extra annotations that are useful when running tests 
 ### Documentation
 - Write clear and concise comments where necessary.
 - All functions should have Javadoc comments, even private functions, but not test functions.
+  - The tags such as @param and @return should use sentence case and end with a period.
+    - Ex. Instead of `@param name the name of the user`, use `@param name The name of the user.`
 - Update the README.md and CHANGELOG.md files for all new features and bug fixes.
+- When writing the `//endregion` comment, use the same name as the `//region` comment to improve readability and navigation in IDEs.
+  - Ex. `//region IInvokedMethodListener methods` and `//endregion IInvokedMethodListener methods`.
 
 ### Code Style
 - Functions should be separated by a single blank line.
 - Add a blank line between different blocks of code (e.g., between fields and methods) for readability, and add a comment above blocks of code that might be complicated.
-  - Example:
+  - Example, do this:
     ```java
     private int age;
     private String name;
@@ -65,6 +69,22 @@ This project contains some extra annotations that are useful when running tests 
         // Further processing
     }
     ```
+    instead of this:
+    ```java
+    private int age;
+    private String name;
+    public void importantMethod() {
+        for (String name : names) {
+            String firstName = name.split(" ")[0];
+            if (age > 18) {
+                log.info("Adult: " + firstName);
+            } else {
+                log.info("Minor: " + firstName);
+            }
+            log.debug("Processed: " + firstName);
+        }
+    }
+    ```
 - All loops and if-else blocks should use braces, even for single statements.
 - Add parentheses for clarity in complex expressions, even when not needed by the compiler.
   - Example:
@@ -79,3 +99,10 @@ This project contains some extra annotations that are useful when running tests 
 - Use PascalCase for class and interface names.
 - Use UPPER_SNAKE_CASE for constants.
 - New interfaces should be prefixed with an uppercase 'I' (e.g., `IExample`).
+- Order of class members:
+  1. Constants
+  2. Fields
+  3. Constructors
+  4. Public methods
+  5. Protected methods
+  6. Private methods

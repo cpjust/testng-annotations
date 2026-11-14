@@ -105,6 +105,10 @@ This scoped behavior prevents a failure in one test class from aborting unrelate
 want suite-wide fail-fast behavior, annotate a shared base class (for example a base suite class) so the trigger class
 is the shared ancestor and skipping will apply to its subclasses (i.e. the whole suite hierarchy under that base).
 
+Fail-fast failures are shared across threads within the same TestNG suite. Under parallel execution, methods that have
+already started (or passed the listener check) cannot be interrupted; subsequent methods checked after the failure is
+recorded will be skipped.
+
 Example (class-scoped):
 ```java
 @BeforeClass

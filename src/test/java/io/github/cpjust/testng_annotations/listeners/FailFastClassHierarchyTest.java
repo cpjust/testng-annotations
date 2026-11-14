@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.testng.TestListenerAdapter;
 import org.testng.TestNG;
+import org.testng.xml.XmlSuite;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -74,6 +75,44 @@ class FailFastClassHierarchyTest {
         }
     }
 
+    public static class ParallelFailFastBase {
+        @org.testng.annotations.BeforeSuite(alwaysRun = true)
+        @FailFast
+        public void failBeforeSuite() {
+            throw new RuntimeException("Shared suite setup failed");
+        }
+    }
+
+    public static class ParallelTestA extends ParallelFailFastBase {
+        static final AtomicBoolean beforeClassRan = new AtomicBoolean(false);
+        static final AtomicBoolean testRan = new AtomicBoolean(false);
+
+        @org.testng.annotations.BeforeClass(alwaysRun = true)
+        public void beforeClass() {
+            beforeClassRan.set(true);
+        }
+
+        @org.testng.annotations.Test
+        public void testA() {
+            testRan.set(true);
+        }
+    }
+
+    public static class ParallelTestB extends ParallelFailFastBase {
+        static final AtomicBoolean beforeClassRan = new AtomicBoolean(false);
+        static final AtomicBoolean testRan = new AtomicBoolean(false);
+
+        @org.testng.annotations.BeforeClass(alwaysRun = true)
+        public void beforeClass() {
+            beforeClassRan.set(true);
+        }
+
+        @org.testng.annotations.Test
+        public void testB() {
+            testRan.set(true);
+        }
+    }
+
     @Test
     void whenFailInSubclassBeforeClass_thenOnlyThatSubclassIsSkipped_and_otherSubclassRuns() {
         TestA.beforeClassRan.set(false);
@@ -96,6 +135,35 @@ class FailFastClassHierarchyTest {
         assertTrue(TestB.testRan.get(), "TestB should run when TestA's beforeClass fails because the trigger is scoped to TestA");
 
         assertThat("There should be configuration failures recorded for the failing beforeClass",
+                listenerAdapter.getConfigurationFailures(), not(empty()));
+    }
+
+    @Test
+    void whenSharedBeforeSuiteFails_inParallelClasses_thenAlwaysRunHooksAreSkippedInBothClasses() {
+        ParallelTestA.beforeClassRan.set(false);
+        ParallelTestA.testRan.set(false);
+        ParallelTestB.beforeClassRan.set(false);
+        ParallelTestB.testRan.set(false);
+
+        TestNG testng = new TestNG();
+        testng.setTestClasses(new Class[]{ParallelTestA.class, ParallelTestB.class});
+        testng.setParallel(XmlSuite.ParallelMode.CLASSES);
+        testng.setThreadCount(2);
+
+        TestListenerAdapter listenerAdapter = new TestListenerAdapter();
+        testng.addListener(listenerAdapter);
+        testng.run();
+
+        assertFalse(ParallelTestA.beforeClassRan.get(),
+                "ParallelTestA BeforeClass(alwaysRun = true) should be skipped after the shared suite setup failure");
+        assertFalse(ParallelTestA.testRan.get(),
+                "ParallelTestA tests should be skipped after the shared suite setup failure");
+        assertFalse(ParallelTestB.beforeClassRan.get(),
+                "ParallelTestB BeforeClass(alwaysRun = true) should be skipped after the shared suite setup failure");
+        assertFalse(ParallelTestB.testRan.get(),
+                "ParallelTestB tests should be skipped after the shared suite setup failure");
+
+        assertThat("The shared @BeforeSuite failure should be reported as a configuration failure.",
                 listenerAdapter.getConfigurationFailures(), not(empty()));
     }
 }

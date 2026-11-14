@@ -2,27 +2,27 @@ package io.github.cpjust.testng_annotations.listeners;
 
 import io.github.cpjust.testng_annotations.annotations.FailFast;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.testng.IInvokedMethod;
-import org.testng.ITestContext;
+import org.testng.ISuite;
+import org.testng.ISuiteListener;
 import org.testng.ITestNGListener;
-import org.testng.ITestNGMethod;
-import org.testng.ITestResult;
-import org.testng.SkipException;
 import org.testng.TestListenerAdapter;
 import org.testng.TestNG;
-import org.testng.internal.ConstructorOrMethod;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeSuite;
+import org.testng.xml.XmlClass;
+import org.testng.xml.XmlSuite;
+import org.testng.xml.XmlTest;
 
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import java.lang.reflect.Method;
-
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for {@link FailFastListener}.
@@ -99,6 +99,49 @@ class FailFastListenerTest {
         }
     }
 
+    public static class FailingSuiteBase {
+        @BeforeSuite(alwaysRun = true)
+        @FailFast
+        public void failBeforeSuite() {
+            throw new RuntimeException("First suite run should fail");
+        }
+    }
+
+    public static class FailingSuiteTest extends FailingSuiteBase {
+        static final AtomicBoolean beforeClassRan = new AtomicBoolean(false);
+
+        @BeforeClass(alwaysRun = true)
+        public void beforeClass() {
+            beforeClassRan.set(true);
+        }
+
+        @org.testng.annotations.Test
+        public void testShouldBeSkipped() {
+            throw new AssertionError("Test should be skipped after the @BeforeSuite failure");
+        }
+    }
+
+    public static class SuccessfulSuiteTest {
+        static final AtomicBoolean beforeClassRan = new AtomicBoolean(false);
+        static final AtomicBoolean testRan = new AtomicBoolean(false);
+
+        @BeforeSuite
+        @FailFast
+        public void beforeSuite() {
+            // A successful @FailFast method must not create a failure trigger.
+        }
+
+        @BeforeClass(alwaysRun = true)
+        public void beforeClass() {
+            beforeClassRan.set(true);
+        }
+
+        @org.testng.annotations.Test
+        public void testRuns() {
+            testRan.set(true);
+        }
+    }
+
     @Test
     void programmaticRun_whenBeforeSuiteAnnotatedWithFailFast_thenSkipAlwaysRunMethods() {
         SampleFailFastTest.beforeClassRan.set(false);
@@ -146,47 +189,57 @@ class FailFastListenerTest {
     }
 
     @Test
-    void unitListener_whenFailFastAnnotatedMethodFails_thenListenerSkipsOtherConfigAndInvocationMethods() throws Exception {
-        FailFastListener listener = new FailFastListener();
-        ITestContext context = Mockito.mock(ITestContext.class);
+    void programmaticRuns_sameNamedSuites_doNotShareFailFastState() {
+        FailingSuiteTest.beforeClassRan.set(false);
+        SuccessfulSuiteTest.beforeClassRan.set(false);
+        SuccessfulSuiteTest.testRan.set(false);
 
-        // Arm the listener by invoking a real @FailFast method
-        Method failMethod = SampleFailFastTest.class.getMethod("beforeSuite");
-        IInvokedMethod invokedFail = Mockito.mock(IInvokedMethod.class);
-        ITestNGMethod failTnm = Mockito.mock(ITestNGMethod.class);
-        when(invokedFail.getTestMethod()).thenReturn(failTnm);
-        when(failTnm.getConstructorOrMethod()).thenReturn(new ConstructorOrMethod(failMethod));
+        ISuite failedSuite = runSuite("same-suite-name", FailingSuiteTest.class);
+        ISuite successfulSuite = runSuite("same-suite-name", SuccessfulSuiteTest.class);
 
-        ITestResult failResult = Mockito.mock(ITestResult.class);
-        when(failResult.getTestContext()).thenReturn(context);
-        when(failResult.getMethod()).thenReturn(failTnm);
-        when(failResult.getThrowable()).thenReturn(new RuntimeException("boom"));
-        when(failResult.getStatus()).thenReturn(ITestResult.FAILURE);
+        assertFalse(FailingSuiteTest.beforeClassRan.get(),
+                "The failed suite should skip its always-run BeforeClass method");
+        assertTrue(SuccessfulSuiteTest.beforeClassRan.get(),
+                "The successful suite should not inherit the previous suite's fail-fast state");
+        assertTrue(SuccessfulSuiteTest.testRan.get(),
+                "The successful suite's test should run when its own setup succeeds");
+        assertNull(failedSuite.getAttribute(
+                        FailFastListener.class.getName() + ".state"),
+                "Fail-fast state should be removed when its suite finishes");
+        assertNull(successfulSuite.getAttribute(
+                        FailFastListener.class.getName() + ".state"),
+                "Successful suite completion should leave no fail-fast state behind");
+    }
 
-        listener.beforeInvocation(invokedFail, failResult);
-        listener.afterInvocation(invokedFail, failResult);
+    /**
+     * Runs one test class in a TestNG suite and captures its suite object for lifecycle assertions.
+     *
+     * @param suiteName the suite name.
+     * @param testClass the test class to execute.
+     * @return the completed suite instance.
+     */
+    private static ISuite runSuite(String suiteName, Class<?> testClass) {
+        XmlSuite suite = new XmlSuite();
+        suite.setName(suiteName);
+        XmlTest xmlTest = new XmlTest(suite);
+        xmlTest.setName("test");
+        xmlTest.setXmlClasses(Collections.singletonList(new XmlClass(testClass)));
 
-        // Methods to verify are skipped
-        String[] methodNames = new String[] {
-                "beforeClass", "beforeGroups", "beforeMethod", "beforeTest",
-                "actualTest", "afterMethod", "afterGroups", "afterClass", "afterTest", "afterSuite"
-        };
+        AtomicReference<ISuite> suiteReference = new AtomicReference<>();
+        TestNG testng = new TestNG();
+        testng.setXmlSuites(Collections.singletonList(suite));
+        testng.addListener(new ISuiteListener() {
+            @Override
+            public void onStart(ISuite startedSuite) {
+                suiteReference.set(startedSuite);
+            }
 
-        for (String name : methodNames) {
-            Method m = SampleFailFastTest.class.getMethod(name);
-            IInvokedMethod im = Mockito.mock(IInvokedMethod.class);
-            ITestNGMethod tnm = Mockito.mock(ITestNGMethod.class);
-            when(im.getTestMethod()).thenReturn(tnm);
-            when(tnm.getConstructorOrMethod()).thenReturn(new ConstructorOrMethod(m));
-
-            ITestResult res = Mockito.mock(ITestResult.class);
-            when(res.getMethod()).thenReturn(tnm);
-            when(res.getTestContext()).thenReturn(context);
-
-            assertThrows(SkipException.class, () -> listener.beforeInvocation(im, res),
-                    "Listener should skip invocation of " + name);
-            assertThrows(SkipException.class, () -> listener.beforeConfiguration(res),
-                    "Listener should skip configuration callback for " + name);
-        }
+            @Override
+            public void onFinish(ISuite finishedSuite) {
+                suiteReference.set(finishedSuite);
+            }
+        });
+        testng.run();
+        return suiteReference.get();
     }
 }

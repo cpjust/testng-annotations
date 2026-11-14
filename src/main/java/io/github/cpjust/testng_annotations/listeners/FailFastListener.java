@@ -8,6 +8,7 @@ import org.testng.IConfigurationListener;
 import org.testng.IInvokedMethod;
 import org.testng.IInvokedMethodListener;
 import org.testng.ISuite;
+import org.testng.ISuiteListener;
 import org.testng.ITestContext;
 import org.testng.ITestListener;
 import org.testng.ITestNGMethod;
@@ -15,32 +16,27 @@ import org.testng.ITestResult;
 import org.testng.SkipException;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
- * Listens for a method annotated with {@link FailFast} and skips subsequent methods once that
- * method fails.
+ * Skips methods in the class hierarchy of a failed {@link FailFast}-annotated method.
+ *
+ * <p>Failure state is shared by all threads in a suite and discarded when that suite finishes. A method
+ * that has already started cannot be interrupted.</p>
  */
 @Slf4j
-public class FailFastListener implements IInvokedMethodListener, ITestListener, IConfigurationListener {
-
-    private static final ThreadLocal<Map<String, Object>> FAIL_FAST_STATE = ThreadLocal.withInitial(HashMap::new);
-    private static final ThreadLocal<String> ACTIVE_SUITE_NAME = new ThreadLocal<>();
-
-    private static final String FAIL_FAST_TRIGGERED = "failFastTriggered";
-    private static final String FAIL_FAST_TRIGGER_MESSAGE = "failFastTriggerMessage";
-    private static final String FAIL_FAST_ACTIVE_METHOD = "failFastActiveMethod";
-    private static final String FAIL_FAST_TRIGGER_CLASS = "failFastTriggerClass";
+public class FailFastListener implements IInvokedMethodListener, ITestListener, IConfigurationListener, ISuiteListener {
+    private static final String STATE_ATTRIBUTE = FailFastListener.class.getName() + ".state";
     private static final String LOG_FAIL_FAST_TRIGGERED = "Fail-fast triggered: {}";
-    private static final String LOG_FAIL_FAST_ARMED_FOR = "Fail-fast armed for {}";
+    private static final String LOG_FAIL_FAST_ENABLED_FOR = "Fail-fast enabled for {}";
     private static final String LOG_WHILE_INVOKING = "{} while invoking {}";
-    private static final String LOG_SKIPPED_DUE_TO_FAIL_FAST_TRIGGERED_BY = "Skipped due to fail-fast triggered by: ";
+    private static final String SKIP_MESSAGE_PREFIX = "Skipped due to fail-fast triggered by: ";
 
     //region IConfigurationListener methods
+
     /**
-     * Prevents configuration methods from running after a fail-fast trigger is active.
+     * Checks whether a configuration method should be skipped after a fail-fast failure.
      *
      * @param result The configuration result being evaluated.
      */
@@ -51,16 +47,11 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         ITestContext context = TestNGAttributeUtils.testContextFor(result);
-        String suiteName = TestNGAttributeUtils.suiteNameFor(context);
-        String currentMethod = TestNGMethodUtils.getMethodName(result);
-        Method realMethod = TestNGMethodUtils.getMethod(result);
-
-        setActiveSuiteName(suiteName, context);
-        skipOrSetActiveMethod(context, currentMethod, realMethod);
+        skipOrLogFailFast(context, TestNGMethodUtils.getMethodName(result), TestNGMethodUtils.getMethod(result));
     }
 
     /**
-     * Prevents configuration methods from running after a fail-fast trigger is active.
+     * Checks whether a configuration method should be skipped after a fail-fast failure.
      *
      * @param result The configuration result being evaluated.
      * @param method The TestNG method metadata.
@@ -72,31 +63,25 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         ITestContext context = TestNGAttributeUtils.testContextFor(result);
-        String suiteName = TestNGAttributeUtils.suiteNameFor(context);
-        String currentMethod = TestNGMethodUtils.getMethodName(method);
-        Method realMethod = TestNGMethodUtils.getMethod(method);
-
-        setActiveSuiteName(suiteName, context);
-        skipOrSetActiveMethod(context, currentMethod, realMethod);
+        skipOrLogFailFast(context, TestNGMethodUtils.getMethodName(method), TestNGMethodUtils.getMethod(method));
     }
 
     /**
-     * Records a fail-fast trigger when a configuration method fails.
+     * Records a failure when the configuration method is annotated with {@link FailFast}.
      *
-     * @param result The configuration result.
+     * @param result The failed configuration result.
      */
     @Override
     public void onConfigurationFailure(ITestResult result) {
-        handleConfigOrTestFailure(result);
+        recordFailure(result);
     }
+
     //endregion IConfigurationListener methods
 
     //region IInvokedMethodListener methods
+
     /**
-     * Checks the active suite state and skips the current invocation when a fail-fast trigger is active.
-     * From the IInvokedMethodListener interface, this method is called before each configuration and test method invocation
-     * (irrespective of whether they pass/fail or get skipped), allowing the listener to prevent further execution of tests
-     * when a fail-fast condition has been triggered.
+     * Checks whether the invoked method should be skipped after a fail-fast failure.
      *
      * @param method The invoked method.
      * @param testResult The associated result.
@@ -108,81 +93,57 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         ITestContext context = TestNGAttributeUtils.testContextFor(testResult);
-        String suiteName = TestNGAttributeUtils.suiteNameFor(context);
-        String currentMethod = methodIdentity(method);
-        Method realMethod = TestNGMethodUtils.getMethod(method.getTestMethod());
-
-        setActiveSuiteName(suiteName, context);
-        skipOrSetActiveMethod(context, currentMethod, realMethod);
+        skipOrLogFailFast(context, methodIdentity(method), TestNGMethodUtils.getMethod(method.getTestMethod()));
     }
 
     /**
-     * Records a fail-fast trigger when the annotated method fails and keeps the state active for the suite.
+     * Records a failure when the invoked method is annotated with {@link FailFast}.
      *
      * @param method The invoked method.
-     * @param testResult The result for the method invocation.
+     * @param testResult The result for that invocation.
      */
     @Override
     public void afterInvocation(IInvokedMethod method, ITestResult testResult) {
-        if (TestNGAttributeUtils.hasTestNGMethod(method)) {
+        if (TestNGAttributeUtils.hasTestNGMethod(method)
+                || !TestNGAttributeUtils.hasTestResultStatus(testResult, ITestResult.FAILURE)) {
             return;
         }
 
-        ITestContext context = TestNGAttributeUtils.testContextFor(testResult);
-        Method realMethod = TestNGMethodUtils.getMethod(method.getTestMethod());
-
-        if (!hasFailFastAnnotation(realMethod)) {
-            return;
-        }
-
-        if (TestNGAttributeUtils.hasTestResultStatus(testResult, ITestResult.FAILURE)) {
-            setFailFastTriggerMessage(context, makeTriggerMessage(testResult));
-            Method failing = TestNGMethodUtils.getMethod(testResult);
-            setActiveFailFastTriggerClass(context, (failing == null) ? null : failing.getDeclaringClass());
-            setFailFastTriggered(context, true);
-            log.warn(LOG_FAIL_FAST_TRIGGERED, failFastTriggerMessage(context));
-            return;
-        }
-
-        if (isFailFastTriggered(context) || failFastTriggerMessage(context) != null) {
-            return;
-        }
-
-        clearFailFastState(context);
+        recordFailure(testResult);
     }
+
     //endregion IInvokedMethodListener methods
 
     //region ITestListener methods
+
     /**
-     * Records a fail-fast trigger when a test method fails.
+     * Records a failure when a test method is annotated with {@link FailFast}.
      *
-     * @param result The failing test result.
+     * @param result The failed test result.
      */
     @Override
     public void onTestFailure(ITestResult result) {
-        handleConfigOrTestFailure(result);
+        recordFailure(result);
     }
 
     /**
-     * No-op lifecycle hook: fail-fast state is retained for the active suite while its setup is in progress.
+     * No-op listener hook.
      *
-     * @param context The active suite context.
+     * @param context The active TestNG context.
      */
     @Override
     public void onStart(ITestContext context) {
-        // Intentionally no-op: fail-fast state is scoped to the active suite lifecycle and should not be cleared
-        // in the middle of a failing configuration sequence.
+        // State is initialized lazily so multiple contexts in a suite share the same state.
     }
 
     /**
-     * No-op lifecycle hook: fail-fast state is retained until the failing method lifecycle has completed.
+     * No-op listener hook.
      *
-     * @param context The active suite context.
+     * @param context The completed TestNG context.
      */
     @Override
     public void onFinish(ITestContext context) {
-        // Intentionally no-op: the listener keeps the fail-fast trigger alive until the suite is finished by the
-        // failing method lifecycle itself.
+        // State belongs to the suite and is removed by onFinish(ISuite).
     }
 
     /**
@@ -198,7 +159,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     /**
      * No-op listener hook.
      *
-     * @param result The test result.
+     * @param result The successful test result.
      */
     @Override
     public void onTestSuccess(ITestResult result) {
@@ -208,7 +169,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     /**
      * No-op listener hook.
      *
-     * @param result The test result.
+     * @param result The skipped test result.
      */
     @Override
     public void onTestSkipped(ITestResult result) {
@@ -218,212 +179,146 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     /**
      * No-op listener hook.
      *
-     * @param result The test result.
+     * @param result The test result that failed within its success percentage.
      */
     @Override
     public void onTestFailedButWithinSuccessPercentage(ITestResult result) {
         // no-op
     }
+
     //endregion ITestListener methods
 
+    //region ISuiteListener methods
+
     /**
-     * Stores a fail-fast attribute in the thread-local state and the TestNG context.
+     * Removes any stale state before a suite starts.
      *
-     * @param context The active TestNG context.
-     * @param key The attribute key.
-     * @param value The new value to store.
+     * @param suite The starting TestNG suite.
      */
-    private static void setContextValue(ITestContext context, String key, Object value) {
-        Map<String, Object> state = FAIL_FAST_STATE.get();
-        ISuite suite = TestNGAttributeUtils.suiteFor(context);
-
-        if (value == null) {
-            state.remove(key);
-
-            if (context != null) {
-                context.removeAttribute(key);
-            }
-
-            if (suite != null) {
-                suite.removeAttribute(key);
-            }
-
-            return;
-        }
-
-        state.put(key, value);
-
-        if (context != null) {
-            context.setAttribute(key, value);
-        }
-
+    @Override
+    public void onStart(ISuite suite) {
         if (suite != null) {
-            suite.setAttribute(key, value);
-        }
-    }
-
-    /**
-     * Reads a fail-fast attribute from the TestNG context or fallback thread-local state.
-     *
-     * @param context The active TestNG context.
-     * @param key The attribute key.
-     * @return the stored value, or null when missing.
-     */
-    private static Object getContextValue(ITestContext context, String key) {
-        if (context != null) {
-            Object value = context.getAttribute(key);
-
-            if (value != null) {
-                return value;
-            }
-
-            ISuite suite = TestNGAttributeUtils.suiteFor(context);
-
-            if (suite != null) {
-                value = suite.getAttribute(key);
-
-                if (value != null) {
-                    return value;
-                }
+            synchronized (suite) {
+                suite.removeAttribute(STATE_ATTRIBUTE);
             }
         }
-
-        return FAIL_FAST_STATE.get().get(key);
     }
 
     /**
-     * Determines whether fail-fast has already been triggered for the active suite.
+     * Removes the suite's fail-fast state after all suite methods have completed.
      *
-     * @param context The active TestNG context.
-     * @return true when the trigger has been marked as active.
+     * @param suite The completed TestNG suite.
      */
-    private static boolean isFailFastTriggered(ITestContext context) {
-        return Boolean.TRUE.equals(getContextValue(context, FAIL_FAST_TRIGGERED));
+    @Override
+    public void onFinish(ISuite suite) {
+        if (suite != null) {
+            synchronized (suite) {
+                suite.removeAttribute(STATE_ATTRIBUTE);
+            }
+        }
     }
 
-    /**
-     * Marks the fail-fast trigger as active or inactive for the current suite.
-     *
-     * @param context The active TestNG context.
-     * @param value The trigger status.
-     */
-    private static void setFailFastTriggered(ITestContext context, boolean value) {
-        setContextValue(context, FAIL_FAST_TRIGGERED, value);
-    }
+    //endregion ISuiteListener methods
 
     /**
-     * Returns the descriptive trigger message recorded for the fail-fast call.
-     *
-     * @param context The active TestNG context.
-     * @return the trigger message, or null when no failure has been recorded.
-     */
-    private static String failFastTriggerMessage(ITestContext context) {
-        Object value = getContextValue(context, FAIL_FAST_TRIGGER_MESSAGE);
-        return (value == null) ? null : value.toString();
-    }
-
-    /**
-     * Stores the fail-fast trigger message in the active context.
-     *
-     * @param context The active TestNG context.
-     * @param value The trigger message.
-     */
-    private static void setFailFastTriggerMessage(ITestContext context, String value) {
-        setContextValue(context, FAIL_FAST_TRIGGER_MESSAGE, value);
-    }
-
-    /**
-     * Returns the method that most recently armed the fail-fast listener.
-     *
-     * @param context The active TestNG context.
-     * @return the active fail-fast method name.
-     */
-    private static String activeFailFastMethod(ITestContext context) {
-        Object value = getContextValue(context, FAIL_FAST_ACTIVE_METHOD);
-        return (value == null) ? null : value.toString();
-    }
-
-    /**
-     * Stores the name of the method that armed fail-fast.
-     *
-     * @param context The active TestNG context.
-     * @param value The active method name.
-     */
-    private static void setActiveFailFastMethod(ITestContext context, String value) {
-        setContextValue(context, FAIL_FAST_ACTIVE_METHOD, value);
-    }
-
-    /**
-     * Returns the class that triggered the current fail-fast event.
-     *
-     * @param context The active TestNG context.
-     * @return the triggering class, or null when no class has triggered fail-fast.
-     */
-    private static Class<?> activeFailFastTriggerClass(ITestContext context) {
-        Object value = getContextValue(context, FAIL_FAST_TRIGGER_CLASS);
-        return (value == null) ? null : (Class<?>) value;
-    }
-
-    /**
-     * Stores the class that triggered the current fail-fast event.
-     *
-     * @param context The active TestNG context.
-     * @param value The trigger class.
-     */
-    private static void setActiveFailFastTriggerClass(ITestContext context, Class<?> value) {
-        setContextValue(context, FAIL_FAST_TRIGGER_CLASS, value);
-    }
-
-    /**
-     * Clears all fail-fast state from the supplied context.
-     *
-     * @param context The active TestNG context.
-     */
-    private static void clearFailFastState(ITestContext context) {
-        setFailFastTriggered(context, false);
-        setFailFastTriggerMessage(context, null);
-        setActiveFailFastMethod(context, null);
-        setActiveFailFastTriggerClass(context, null);
-        FAIL_FAST_STATE.remove();
-    }
-
-    /**
-     * Determines whether the current method should be skipped because fail-fast is active.
+     * Checks the recorded suite failures and either skips the current method or logs its fail-fast annotation.
      *
      * @param context The active TestNG context.
      * @param currentMethod The method currently being evaluated.
      * @param realMethod The reflected Java method for the invocation.
-     * @return true when the current method should be skipped.
      */
-    private static boolean shouldSkipDueToFailFast(ITestContext context, String currentMethod, Method realMethod) {
-        if (context == null || currentMethod == null) {
-            return false;
+    private static void skipOrLogFailFast(ITestContext context, String currentMethod, Method realMethod) {
+        if ((context == null) || (currentMethod == null)) {
+            return;
         }
 
-        if (!isFailFastTriggered(context) && failFastTriggerMessage(context) == null) {
-            return false;
+        SuiteState state = suiteState(context, false);
+
+        if ((state != null) && state.shouldSkip(realMethod)) {
+            String message = SKIP_MESSAGE_PREFIX + state.messageFor(realMethod);
+            log.debug(LOG_WHILE_INVOKING, message, currentMethod);
+            throw new SkipException(message);
         }
 
-        Class<?> triggerClass = activeFailFastTriggerClass(context);
-        Class<?> currentDeclaring = (realMethod == null) ? null : realMethod.getDeclaringClass();
-
-        return (triggerClass != null)
-                && (currentDeclaring != null)
-                && triggerClass.isAssignableFrom(currentDeclaring)
-                && !Objects.equals(activeFailFastMethod(context), currentMethod);
+        if (hasFailFastAnnotation(realMethod)) {
+            log.debug(LOG_FAIL_FAST_ENABLED_FOR, currentMethod);
+        }
     }
 
     /**
-     * Builds a human-readable message for the method that triggered fail-fast.
+     * Records an annotated method failure in the state associated with its suite.
      *
-     * @param result The result from the failing method.
-     * @return a descriptive message about the method and the reason for failure.
+     * @param result The failed TestNG result.
      */
-    private static String makeTriggerMessage(ITestResult result) {
-        if (result == null) {
-            return "(no details)";
+    private static void recordFailure(ITestResult result) {
+        if (TestNGAttributeUtils.hasTestNGMethod(result)) {
+            return;
         }
 
+        Method method = TestNGMethodUtils.getMethod(result);
+
+        if (!hasFailFastAnnotation(method)) {
+            return;
+        }
+
+        ITestContext context = TestNGAttributeUtils.testContextFor(result);
+        SuiteState state = suiteState(context, true);
+
+        if (state == null) {
+            log.warn("Unable to record @FailFast failure because the TestNG suite context is unavailable.");
+            return;
+        }
+
+        String message = makeTriggerMessage(result);
+
+        if (state.recordFailure(method.getDeclaringClass(), message)) {
+            log.warn(LOG_FAIL_FAST_TRIGGERED, message);
+        }
+    }
+
+    /**
+     * Returns the suite-owned state, creating it atomically when requested.
+     *
+     * @param context The active TestNG context.
+     * @param create Whether state should be created when missing.
+     * @return The suite state, or null when the context or suite is unavailable.
+     */
+    private static SuiteState suiteState(ITestContext context, boolean create) {
+        ISuite suite = TestNGAttributeUtils.suiteFor(context);
+
+        if (suite == null) {
+            return null;
+        }
+
+        synchronized (suite) {
+            Object value = suite.getAttribute(STATE_ATTRIBUTE);
+
+            if (value instanceof SuiteState) {
+                return (SuiteState) value;
+            }
+
+            if (value != null) {
+                log.error("Unexpected value stored under fail-fast suite attribute: {}", value.getClass().getName());
+                return null;
+            }
+
+            if (!create) {
+                return null;
+            }
+
+            SuiteState state = new SuiteState();
+            suite.setAttribute(STATE_ATTRIBUTE, state);
+            return state;
+        }
+    }
+
+    /**
+     * Builds a descriptive message for the method that triggered fail-fast.
+     *
+     * @param result The result from the failing method.
+     * @return A message containing the method name and failure reason.
+     */
+    private static String makeTriggerMessage(ITestResult result) {
         Method method = TestNGMethodUtils.getMethod(result);
         String methodName = (method == null)
                 ? result.getMethod().getMethodName()
@@ -432,102 +327,80 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         String reason = (throwable == null)
                 ? "failed"
                 : throwable.getClass().getSimpleName() + ": " + throwable.getMessage();
-
         return methodName + " " + reason;
     }
 
     /**
-     * Detects whether the given method has the {@link FailFast} annotation.
+     * Determines whether the supplied method carries the fail-fast annotation.
      *
-     * @param method The method to inspect.
-     * @return true when it is annotated as fail-fast.
+     * @param method The reflected Java method.
+     * @return True when the method is annotated with {@link FailFast}.
      */
     private static boolean hasFailFastAnnotation(Method method) {
         return (method != null) && method.isAnnotationPresent(FailFast.class);
     }
 
     /**
-     * Detects whether the given TestNG result belongs to a fail-fast method.
-     *
-     * @param result The result to inspect.
-     * @return true when the corresponding method is annotated as fail-fast.
-     */
-    private static boolean hasFailFastAnnotation(ITestResult result) {
-        if (result == null) {
-            return false;
-        }
-
-        try {
-            return hasFailFastAnnotation(TestNGMethodUtils.getMethod(result));
-        } catch (RuntimeException ex) {
-            log.debug("Unable to inspect method for @FailFast annotation.", ex);
-            return false;
-        }
-    }
-
-    /**
      * Creates a stable identity string for a TestNG invoked method.
      *
      * @param method The invoked method to inspect.
-     * @return a unique identity string for the method.
+     * @return The method's class-and-name identity.
      */
     private static String methodIdentity(IInvokedMethod method) {
-        if (TestNGAttributeUtils.hasTestNGMethod(method)) {
-            return "";
-        }
-
         return TestNGMethodUtils.getMethodName(method.getTestMethod());
     }
 
     /**
-     * Determines whether the current method should be skipped because fail-fast is active.
-     *
-     * @param suiteName The name of the suite currently being executed.
-     * @param context The TestNG context.
+     * Holds fail-fast failures for one suite.
      */
-    private static void setActiveSuiteName(String suiteName, ITestContext context) {
-        if ((suiteName != null) && !Objects.equals(suiteName, ACTIVE_SUITE_NAME.get())) {
-            clearFailFastState(context);
-            ACTIVE_SUITE_NAME.set(suiteName);
-        } else if (suiteName != null) {
-            ACTIVE_SUITE_NAME.set(suiteName);
+    private static final class SuiteState {
+
+        private final Map<Class<?>, String> failures = new LinkedHashMap<>();
+
+        /**
+         * Adds a failure for the class that declared its annotated method.
+         *
+         * @param triggerClass The class declaring the failed method.
+         * @param message A human-readable failure message.
+         * @return True when the class was newly recorded.
+         */
+        private synchronized boolean recordFailure(Class<?> triggerClass, String message) {
+            return failures.putIfAbsent(triggerClass, message) == null;
         }
-    }
 
-    /**
-     * Determines whether the current method should be skipped because fail-fast is active, then either skips the method
-     * or sets it as the active fail-fast method.
-     *
-     * @param context The TestNG context.
-     * @param currentMethod The name of the method currently being evaluated.
-     * @param realMethod The reflected Java method for the invocation.
-     */
-    private static void skipOrSetActiveMethod(ITestContext context, String currentMethod, Method realMethod) {
-        if (shouldSkipDueToFailFast(context, currentMethod, realMethod)) {
-            String message = LOG_SKIPPED_DUE_TO_FAIL_FAST_TRIGGERED_BY + failFastTriggerMessage(context);
-            log.debug(LOG_WHILE_INVOKING, message, currentMethod);
-            throw new SkipException(message);
-        } else if (hasFailFastAnnotation(realMethod)) {
-            setActiveFailFastMethod(context, currentMethod);
-            setFailFastTriggered(context, true);
-            log.debug(LOG_FAIL_FAST_ARMED_FOR, activeFailFastMethod(context));
+        /**
+         * Determines whether a method belongs to a failed class hierarchy.
+         *
+         * @param method The method being evaluated.
+         * @return True when a recorded trigger class is an ancestor of the method's declaring class.
+         */
+        private synchronized boolean shouldSkip(Method method) {
+            if (method == null) {
+                return false;
+            }
+
+            Class<?> currentClass = method.getDeclaringClass();
+            return failures.keySet().stream()
+                    .anyMatch(triggerClass -> triggerClass.isAssignableFrom(currentClass));
         }
-    }
 
-    /**
-     * Records a fail-fast trigger when a configuration or test method fails.
-     *
-     * @param result The result from the failing method.
-     */
-    private static void handleConfigOrTestFailure(ITestResult result) {
-        ITestContext context = TestNGAttributeUtils.testContextFor(result);
+        /**
+         * Returns the failure message for the trigger applicable to a method.
+         *
+         * @param method The method being evaluated.
+         * @return The applicable failure message, or a fallback when no match is available.
+         */
+        private synchronized String messageFor(Method method) {
+            if (method == null) {
+                return "(no details)";
+            }
 
-        if (hasFailFastAnnotation(result)) {
-            setFailFastTriggerMessage(context, makeTriggerMessage(result));
-            Method failing = TestNGMethodUtils.getMethod(result);
-            setActiveFailFastTriggerClass(context, (failing == null) ? null : failing.getDeclaringClass());
-            setFailFastTriggered(context, true);
-            log.warn(LOG_FAIL_FAST_TRIGGERED, failFastTriggerMessage(context));
+            Class<?> currentClass = method.getDeclaringClass();
+            return failures.entrySet().stream()
+                    .filter(entry -> entry.getKey().isAssignableFrom(currentClass))
+                    .map(Map.Entry::getValue)
+                    .findFirst()
+                    .orElse("(no details)");
         }
     }
 }
