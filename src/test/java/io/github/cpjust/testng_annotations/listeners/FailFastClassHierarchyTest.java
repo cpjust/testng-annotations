@@ -24,6 +24,9 @@ class FailFastClassHierarchyTest {
 
     @Slf4j
     public static class TestBase {
+        static final AtomicBoolean testABaseAfterClassRan = new AtomicBoolean(false);
+        static final AtomicBoolean testBBaseAfterClassRan = new AtomicBoolean(false);
+
         @org.testng.annotations.BeforeSuite(alwaysRun = true)
         @FailFast
         public void baseBeforeSuite() {
@@ -34,6 +37,18 @@ class FailFastClassHierarchyTest {
         @FailFast
         public void baseBeforeClass() {
             log.info("Base beforeClass setup completed successfully.");
+        }
+
+        /**
+         * Records which subclass receives the inherited always-run cleanup hook.
+         */
+        @org.testng.annotations.AfterClass(alwaysRun = true)
+        public void baseAfterClass() {
+            if (getClass() == TestA.class) {
+                testABaseAfterClassRan.set(true);
+            } else if (getClass() == TestB.class) {
+                testBBaseAfterClassRan.set(true);
+            }
         }
     }
 
@@ -119,6 +134,8 @@ class FailFastClassHierarchyTest {
         TestA.testRan.set(false);
         TestB.beforeClassRan.set(false);
         TestB.testRan.set(false);
+        TestBase.testABaseAfterClassRan.set(false);
+        TestBase.testBBaseAfterClassRan.set(false);
 
         TestNG testng = new TestNG();
         testng.setTestClasses(new Class[]{TestA.class, TestB.class});
@@ -130,9 +147,13 @@ class FailFastClassHierarchyTest {
 
         // TestA should not run its test due to its failing beforeClass.
         assertFalse(TestA.testRan.get(), "TestA should not run when its beforeClass fails");
+        assertFalse(TestBase.testABaseAfterClassRan.get(),
+                "The inherited AfterClass(alwaysRun = true) should be skipped for TestA after its fail-fast failure");
         // TestB methods should still run despite TestA failure.
         assertTrue(TestB.beforeClassRan.get(), "TestB should run its beforeClass");
         assertTrue(TestB.testRan.get(), "TestB should run when TestA's beforeClass fails because the trigger is scoped to TestA");
+        assertTrue(TestBase.testBBaseAfterClassRan.get(),
+                "The inherited AfterClass(alwaysRun = true) should still run for unaffected sibling TestB");
 
         assertThat("There should be configuration failures recorded for the failing beforeClass",
                 listenerAdapter.getConfigurationFailures(), not(empty()));
