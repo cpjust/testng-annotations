@@ -47,7 +47,8 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         ITestContext context = TestNGAttributeUtils.testContextFor(result);
-        skipOrLogFailFast(context, TestNGMethodUtils.getMethodName(result), TestNGMethodUtils.getMethod(result));
+        Method realMethod = TestNGMethodUtils.getMethod(result);
+        skipOrLogFailFast(context, TestNGMethodUtils.getMethodName(result), realMethod, executingClass(result, realMethod));
     }
 
     /**
@@ -63,7 +64,8 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         ITestContext context = TestNGAttributeUtils.testContextFor(result);
-        skipOrLogFailFast(context, TestNGMethodUtils.getMethodName(method), TestNGMethodUtils.getMethod(method));
+        Method realMethod = TestNGMethodUtils.getMethod(method);
+        skipOrLogFailFast(context, TestNGMethodUtils.getMethodName(method), realMethod, executingClass(result, realMethod));
     }
 
     /**
@@ -93,7 +95,8 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         ITestContext context = TestNGAttributeUtils.testContextFor(testResult);
-        skipOrLogFailFast(context, methodIdentity(method), TestNGMethodUtils.getMethod(method.getTestMethod()));
+        Method realMethod = TestNGMethodUtils.getMethod(method.getTestMethod());
+        skipOrLogFailFast(context, methodIdentity(method), realMethod, executingClass(testResult, realMethod));
     }
 
     /**
@@ -226,16 +229,22 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
      * @param context The active TestNG context.
      * @param currentMethod The method currently being evaluated.
      * @param realMethod The reflected Java method for the invocation.
+     * @param executingClass The runtime class of the instance executing the method.
      */
-    private static void skipOrLogFailFast(ITestContext context, String currentMethod, Method realMethod) {
+    private static void skipOrLogFailFast(
+            ITestContext context,
+            String currentMethod,
+            Method realMethod,
+            Class<?> executingClass
+    ) {
         if ((context == null) || (currentMethod == null)) {
             return;
         }
 
         SuiteState state = suiteState(context, false);
 
-        if ((state != null) && state.shouldSkip(realMethod)) {
-            String message = SKIP_MESSAGE_PREFIX + state.messageFor(realMethod);
+        if ((state != null) && state.shouldSkip(executingClass)) {
+            String message = SKIP_MESSAGE_PREFIX + state.messageFor(executingClass);
             log.debug(LOG_WHILE_INVOKING, message, currentMethod);
             throw new SkipException(message);
         }
@@ -243,6 +252,20 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         if (hasFailFastAnnotation(realMethod)) {
             log.debug(LOG_FAIL_FAST_ENABLED_FOR, currentMethod);
         }
+    }
+
+    /**
+     * Returns the runtime class of the instance executing a method.
+     *
+     * @param result The result for the current invocation.
+     * @param method The reflected method for the current invocation.
+     * @return The runtime instance class, or the method's declaring class when no instance is available.
+     */
+    private static Class<?> executingClass(ITestResult result, Method method) {
+        Object instance = (result == null) ? null : result.getInstance();
+        return (instance == null)
+                ? ((method == null) ? null : method.getDeclaringClass())
+                : instance.getClass();
     }
 
     /**
@@ -369,35 +392,33 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         /**
-         * Determines whether a method belongs to a failed class hierarchy.
+         * Determines whether an executing class belongs to a failed class hierarchy.
          *
-         * @param method The method being evaluated.
-         * @return True when a recorded trigger class is an ancestor of the method's declaring class.
+         * @param executingClass The runtime class of the instance being evaluated.
+         * @return True when a recorded trigger class is an ancestor of the executing class.
          */
-        private synchronized boolean shouldSkip(Method method) {
-            if (method == null) {
+        private synchronized boolean shouldSkip(Class<?> executingClass) {
+            if (executingClass == null) {
                 return false;
             }
 
-            Class<?> currentClass = method.getDeclaringClass();
             return failures.keySet().stream()
-                    .anyMatch(triggerClass -> triggerClass.isAssignableFrom(currentClass));
+                    .anyMatch(triggerClass -> triggerClass.isAssignableFrom(executingClass));
         }
 
         /**
-         * Returns the failure message for the trigger applicable to a method.
+         * Returns the failure message for the trigger applicable to an executing class.
          *
-         * @param method The method being evaluated.
+         * @param executingClass The runtime class of the instance being evaluated.
          * @return The applicable failure message, or a fallback when no match is available.
          */
-        private synchronized String messageFor(Method method) {
-            if (method == null) {
+        private synchronized String messageFor(Class<?> executingClass) {
+            if (executingClass == null) {
                 return "(no details)";
             }
 
-            Class<?> currentClass = method.getDeclaringClass();
             return failures.entrySet().stream()
-                    .filter(entry -> entry.getKey().isAssignableFrom(currentClass))
+                    .filter(entry -> entry.getKey().isAssignableFrom(executingClass))
                     .map(Map.Entry::getValue)
                     .findFirst()
                     .orElse("(no details)");
