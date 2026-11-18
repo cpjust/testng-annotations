@@ -419,8 +419,9 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
 
             return failures.entrySet().stream()
                     .filter(entry -> entry.getKey().isAssignableFrom(executingClass))
+                    .reduce((mostSpecific, candidate) ->
+                            mostSpecific.getKey().isAssignableFrom(candidate.getKey()) ? candidate : mostSpecific)
                     .map(Map.Entry::getValue)
-                    .findFirst()
                     .orElse("(no details)");
         }
     }
