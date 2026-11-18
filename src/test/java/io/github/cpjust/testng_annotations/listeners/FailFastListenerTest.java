@@ -4,7 +4,6 @@ import io.github.cpjust.testng_annotations.annotations.FailFast;
 import org.junit.jupiter.api.Test;
 import org.testng.ISuite;
 import org.testng.ISuiteListener;
-import org.testng.ITestNGListener;
 import org.testng.TestListenerAdapter;
 import org.testng.TestNG;
 import org.testng.annotations.BeforeClass;
@@ -20,14 +19,33 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.not;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for {@link FailFastListener}.
  */
 class FailFastListenerTest {
+
+    public static class FailureMessageBase {
+        @FailFast
+        public void failInBase() {
+            // The test reports this failure directly to the listener.
+        }
+    }
+
+    public static class FailureMessageSubclass extends FailureMessageBase {
+        @FailFast
+        public void failInSubclass() {
+            // The test reports this failure directly to the listener.
+        }
+
+        public void continueSetup() {
+            // The listener skips this method after either fail-fast failure is recorded.
+        }
+    }
 
     public static class SampleFailFastTest {
         static final AtomicBoolean beforeClassRan = new AtomicBoolean(false);
@@ -143,7 +161,7 @@ class FailFastListenerTest {
     }
 
     @Test
-    void programmaticRun_whenBeforeSuiteAnnotatedWithFailFast_thenSkipAlwaysRunMethods() {
+    void givenFailingBeforeSuiteWithFailFast_whenSuiteRuns_thenSkipAllRemainingMethods() {
         SampleFailFastTest.beforeClassRan.set(false);
         SampleFailFastTest.beforeGroupsRan.set(false);
         SampleFailFastTest.beforeMethodRan.set(false);
@@ -160,7 +178,7 @@ class FailFastListenerTest {
         testng.setTestClasses(new Class[] {SampleFailFastTest.class});
 
         TestListenerAdapter listenerAdapter = new TestListenerAdapter();
-        testng.addListener((ITestNGListener) listenerAdapter);
+        testng.addListener(listenerAdapter);
 
         testng.run();
 
@@ -175,6 +193,8 @@ class FailFastListenerTest {
         assertFalse(SampleFailFastTest.testRan.get(),
                 "Test should not run when fail-fast is triggered by a failing @BeforeSuite");
 
+        assertFalse(SampleFailFastTest.afterSuiteRan.get(),
+                "AfterSuite should not run when fail-fast is triggered by a failing @BeforeSuite");
         assertFalse(SampleFailFastTest.afterClassRan.get(),
                 "AfterClass should not run when fail-fast is triggered by a failing @BeforeSuite");
         assertFalse(SampleFailFastTest.afterGroupsRan.get(),
@@ -189,7 +209,7 @@ class FailFastListenerTest {
     }
 
     @Test
-    void programmaticRuns_sameNamedSuites_doNotShareFailFastState() {
+    void givenTwoSuitesWithSameName_whenFirstSuiteFails_thenSecondSuiteDoesNotShareFailFastState() {
         FailingSuiteTest.beforeClassRan.set(false);
         SuccessfulSuiteTest.beforeClassRan.set(false);
         SuccessfulSuiteTest.testRan.set(false);
@@ -209,6 +229,19 @@ class FailFastListenerTest {
         assertNull(successfulSuite.getAttribute(
                         FailFastListener.class.getName() + ".state"),
                 "Successful suite completion should leave no fail-fast state behind");
+    }
+
+    @Test
+    void givenBaseAndSubclassFailuresAreRecorded_messageFor_thenSkipMessageUsesMostSpecificFailure() {
+        FailFastListener.SuiteState suiteState = new FailFastListener.SuiteState();
+
+        suiteState.recordFailure(FailureMessageBase.class, "base failure");
+        suiteState.recordFailure(FailureMessageSubclass.class, "subclass failure");
+
+        String message = suiteState.messageFor(FailureMessageSubclass.class);
+
+        assertEquals("subclass failure", message,
+                "The skip message should use the most specific applicable subclass failure");
     }
 
     /**

@@ -376,7 +376,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     /**
      * Holds fail-fast failures for one suite.
      */
-    private static final class SuiteState {
+    static final class SuiteState {
 
         private final Map<Class<?>, String> failures = new LinkedHashMap<>();
 
@@ -387,7 +387,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
          * @param message A human-readable failure message.
          * @return True when the class was newly recorded.
          */
-        private synchronized boolean recordFailure(Class<?> triggerClass, String message) {
+        synchronized boolean recordFailure(Class<?> triggerClass, String message) {
             return failures.putIfAbsent(triggerClass, message) == null;
         }
 
@@ -397,7 +397,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
          * @param executingClass The runtime class of the instance being evaluated.
          * @return True when a recorded trigger class is an ancestor of the executing class.
          */
-        private synchronized boolean shouldSkip(Class<?> executingClass) {
+        synchronized boolean shouldSkip(Class<?> executingClass) {
             if (executingClass == null) {
                 return false;
             }
@@ -412,7 +412,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
          * @param executingClass The runtime class of the instance being evaluated.
          * @return The applicable failure message, or a fallback when no match is available.
          */
-        private synchronized String messageFor(Class<?> executingClass) {
+        synchronized String messageFor(Class<?> executingClass) {
             if (executingClass == null) {
                 return "(no details)";
             }
