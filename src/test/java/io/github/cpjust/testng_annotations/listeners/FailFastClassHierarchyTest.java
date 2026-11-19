@@ -3,15 +3,20 @@ package io.github.cpjust.testng_annotations.listeners;
 import io.github.cpjust.testng_annotations.annotations.FailFast;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.testng.ITestListener;
+import org.testng.ITestResult;
 import org.testng.TestListenerAdapter;
 import org.testng.TestNG;
 import org.testng.xml.XmlSuite;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Slf4j
 class FailFastClassHierarchyTest {
+    private static final long LATCH_TIMEOUT_SECONDS = 10L;
 
     @Slf4j
     public static class TestBase {
@@ -128,6 +134,34 @@ class FailFastClassHierarchyTest {
         }
     }
 
+    public static class ParallelRaceBoundaryTest {
+        static volatile CountDownLatch alreadyRunningMethodStarted = new CountDownLatch(1);
+        static volatile CountDownLatch failFastFailureRecorded = new CountDownLatch(1);
+        static final AtomicBoolean alreadyRunningMethodCompleted = new AtomicBoolean(false);
+        static final AtomicBoolean queuedMethodRan = new AtomicBoolean(false);
+
+        @org.testng.annotations.Test(priority = 0)
+        @FailFast
+        public void failFastAfterAnotherMethodStarts() throws InterruptedException {
+            assertTrue(alreadyRunningMethodStarted.await(LATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    "The second test method should start before the fail-fast method completes");
+            throw new RuntimeException("Parallel fail-fast trigger");
+        }
+
+        @org.testng.annotations.Test(priority = 1)
+        public void alreadyRunningMethod() throws InterruptedException {
+            alreadyRunningMethodStarted.countDown();
+            assertTrue(failFastFailureRecorded.await(LATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    "The fail-fast failure should be recorded while this method is running");
+            alreadyRunningMethodCompleted.set(true);
+        }
+
+        @org.testng.annotations.Test(priority = 2)
+        public void queuedMethod() {
+            queuedMethodRan.set(true);
+        }
+    }
+
     @Test
     void whenFailInSubclassBeforeClass_thenOnlyThatSubclassIsSkipped_and_otherSubclassRuns() {
         TestA.beforeClassRan.set(false);
@@ -186,5 +220,60 @@ class FailFastClassHierarchyTest {
 
         assertThat("The shared @BeforeSuite failure should be reported as a configuration failure.",
                 listenerAdapter.getConfigurationFailures(), not(empty()));
+    }
+
+    @Test
+    void whenFailFastTriggersDuringParallelExecution_thenRunningMethodCompletesAndQueuedMethodIsSkipped() {
+        ParallelRaceBoundaryTest.alreadyRunningMethodStarted = new CountDownLatch(1);
+        ParallelRaceBoundaryTest.failFastFailureRecorded = new CountDownLatch(1);
+        ParallelRaceBoundaryTest.alreadyRunningMethodCompleted.set(false);
+        ParallelRaceBoundaryTest.queuedMethodRan.set(false);
+
+        TestNG testng = new TestNG();
+        testng.setTestClasses(new Class[] {ParallelRaceBoundaryTest.class});
+        testng.setParallel(XmlSuite.ParallelMode.METHODS);
+        testng.setThreadCount(2);
+
+        TestListenerAdapter listenerAdapter = new TestListenerAdapter();
+        testng.addListener(listenerAdapter);
+        testng.addListener(new ITestListener() {
+            @Override
+            public void onTestFailure(ITestResult result) {
+                if ("failFastAfterAnotherMethodStarts".equals(result.getMethod().getMethodName())) {
+                    ParallelRaceBoundaryTest.failFastFailureRecorded.countDown();
+                }
+            }
+        });
+
+        testng.run();
+
+        assertTrue(ParallelRaceBoundaryTest.alreadyRunningMethodCompleted.get(),
+                "A method already running when fail-fast triggers should be allowed to complete");
+        assertFalse(ParallelRaceBoundaryTest.queuedMethodRan.get(),
+                "A method checked after the fail-fast failure should be skipped");
+        assertEquals(1, listenerAdapter.getFailedTests().size(),
+                "Only the fail-fast trigger should be reported as a failed test");
+        assertEquals(
+                "failFastAfterAnotherMethodStarts",
+                listenerAdapter.getFailedTests().get(0).getMethod().getMethodName(),
+                "The fail-fast trigger should be the failed test");
+        assertEquals(
+                "Parallel fail-fast trigger",
+                listenerAdapter.getFailedTests().get(0).getThrowable().getMessage(),
+                "The trigger should fail only after the other method has started");
+        assertEquals(1, listenerAdapter.getPassedTests().size(),
+                "The already-running method should complete successfully");
+        assertEquals(
+                "alreadyRunningMethod",
+                listenerAdapter.getPassedTests().get(0).getMethod().getMethodName(),
+                "The already-running method should be the successful test");
+        assertEquals(1, listenerAdapter.getSkippedTests().size(),
+                "Only the method checked after fail-fast should be skipped");
+        assertEquals(
+                "queuedMethod",
+                listenerAdapter.getSkippedTests().get(0).getMethod().getMethodName(),
+                "The queued method should be the skipped test");
+        assertThat("The queued test should be reported as skipped after fail-fast triggers",
+                listenerAdapter.getSkippedTests(), not(empty()));
     }
 }
