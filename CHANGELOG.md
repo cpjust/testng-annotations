@@ -6,7 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.5.0] - 2026-08-28
+## [1.6.0] - 2026-11-20
+### Added
+- Added a `@FailFast` annotation and `FailFastListener` to skip all later TestNG methods when a `@BeforeSuite` or other annotated method fails, even when `alwaysRun = true` is set.
+
+## [1.5.0] - 2026-08-29
 ### Added
 - Added a `@DisableBetweenTimes` annotation to disable tests between specific times every day, with an optional `timezone` parameter
   to specify the timezone for time calculations that defaults to system default timezone if not specified.

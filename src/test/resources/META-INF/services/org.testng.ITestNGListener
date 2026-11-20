@@ -2,3 +2,4 @@ io.github.cpjust.testng_annotations.listeners.annotation_transformers.AllAnnotat
 io.github.cpjust.testng_annotations.listeners.annotation_transformers.DisableBetweenDatesListener
 io.github.cpjust.testng_annotations.listeners.annotation_transformers.DisableBetweenTimesListener
 io.github.cpjust.testng_annotations.listeners.ExcludeOnEnvListener
+io.github.cpjust.testng_annotations.listeners.FailFastListener

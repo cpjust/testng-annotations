@@ -19,6 +19,9 @@ import static org.hamcrest.Matchers.not;
 
 @Slf4j
 public class ExcludeOnEnvIT extends BaseITEnvListener {
+    static final String METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS = "java:S4144"; // Suppress "Methods should not have identical implementations" warning
+    static final String SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED = "java:S5976"; // Suppress "Similar tests should be grouped in a single Parameterized test" warning
+
     private static final List<String> testsRun = new ArrayList<>();
 
     @Test
@@ -28,6 +31,7 @@ public class ExcludeOnEnvIT extends BaseITEnvListener {
 
     @ExcludeOnEnv(value = "matchEnv")
     @Test
+    @SuppressWarnings({METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS, SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED})
     public void testWithExcludedEnv_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();
@@ -41,6 +45,7 @@ public class ExcludeOnEnvIT extends BaseITEnvListener {
 
     @ExcludeOnEnv(value = "MATCHeNV")
     @Test
+    @SuppressWarnings({METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS, SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED})
     public void testWithExcludedEnv_differentCase_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();
@@ -48,6 +53,7 @@ public class ExcludeOnEnvIT extends BaseITEnvListener {
 
     @ExcludeOnEnv(value = {"matchEnvironment"}, propertyName = "environment")
     @Test
+    @SuppressWarnings({METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS, SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED})
     public void testWithExcludedEnv_customPropertyName_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();
@@ -61,6 +67,7 @@ public class ExcludeOnEnvIT extends BaseITEnvListener {
 
     @ExcludeOnEnv(value = {"matchEnv", "unmatchEnv"})
     @Test
+    @SuppressWarnings({METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS, SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED})
     public void testWithExcludedAndNonExcludedEnvs_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();
@@ -87,6 +94,7 @@ public class ExcludeOnEnvIT extends BaseITEnvListener {
 
     @ExcludeOnEnv(value = {"dev|matchEnv|stage"}, delimiter = "|")
     @Test
+    @SuppressWarnings({METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS, SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED})
     public void testWithExcludedEnv_csvWithDelimiter_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();
@@ -94,6 +102,7 @@ public class ExcludeOnEnvIT extends BaseITEnvListener {
 
     @ExcludeOnEnv(value = {"dev matchEnv stage"}, delimiter = " ")
     @Test
+    @SuppressWarnings({METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS, SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED})
     public void testWithExcludedEnv_csvWithSpaceDelimiter_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();
@@ -113,6 +122,7 @@ public class ExcludeOnEnvIT extends BaseITEnvListener {
 
     @ExcludeOnEnv(value = {"dev|prod", "stage|matchEnv"}, delimiter = "|")
     @Test
+    @SuppressWarnings({METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS, SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED})
     public void testWithCsvExcludedEnv_arrayOfCsvWithDelimiter_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();

@@ -22,17 +22,27 @@ The testng-annotations project contains some extra annotations that are useful w
 2. Register listeners (pick one):
 - Add to test class:
 ```java
-@Listeners({IncludeOnEnvListener.class, ExcludeOnEnvListener.class})
+@Listeners({IncludeOnEnvListener.class, ExcludeOnEnvListener.class, FailFastListener.class})
 ```
 - OR add to `src/test/resources/META-INF/services/org.testng.ITestNGListener`:
 ```
 io.github.cpjust.testng_annotations.listeners.IncludeOnEnvListener
 io.github.cpjust.testng_annotations.listeners.ExcludeOnEnvListener
+io.github.cpjust.testng_annotations.listeners.FailFastListener
 io.github.cpjust.testng_annotations.listeners.annotation_transformers.AllAnnotationTransformers
 ```
 
 3. Use annotations in tests:
 ```java
+// Stop the suite immediately if setup fails
+@BeforeSuite
+@FailFast
+public void verifyEnvironment() {
+    if (!"ready".equals(System.getProperty("test.status"))) {
+        throw new IllegalStateException("Environment not ready");
+    }
+}
+
 // Skip in production
 @ExcludeOnEnv("prod")
 @Test
@@ -85,6 +95,37 @@ public void testWithInts(int value) {
 ```
 
 ## Annotations
+
+### @FailFast
+Marks a TestNG configuration or test method as the trigger for fail-fast behavior. When the annotated method fails,
+subsequent TestNG tests and configuration methods in the same class (and in subclasses of that class) will be skipped,
+even if they declare `alwaysRun = true`.
+
+This scoped behavior prevents a failure in one test class from aborting unrelated test classes in the same suite. If you
+want suite-wide fail-fast behavior, annotate a shared base class (for example a base suite class) so the trigger class
+is the shared ancestor and skipping will apply to its subclasses (i.e. the whole suite hierarchy under that base).
+
+Fail-fast failures are shared across threads within the same TestNG suite. Under parallel execution, methods that have
+already started (or passed the listener check) cannot be interrupted; subsequent methods checked after the failure is
+recorded will be skipped.
+
+Example (class-scoped):
+```java
+@BeforeClass
+@FailFast
+public void ensureResource() {
+    // If this fails, only methods in this class and subclasses will be skipped
+}
+```
+
+Example (suite-scoped via shared base):
+```java
+@BeforeSuite
+@FailFast
+public void verifyEnvironment() {
+    // Failing here will skip methods in the shared base class and its subclasses (broad scope)
+}
+```
 
 ### @ExcludeOnEnv
 This annotation will exclude tests if the current environment (as defined by a Java property) matches one of the

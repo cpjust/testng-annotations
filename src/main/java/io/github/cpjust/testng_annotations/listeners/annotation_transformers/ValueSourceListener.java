@@ -300,7 +300,7 @@ public class ValueSourceListener extends SourceListenerBase implements IAnnotati
             }
         }
 
-        return foundIndex != -1 ? Optional.of(valueTypes[foundIndex]) : Optional.empty();
+        return foundIndex == -1 ? Optional.empty() : Optional.of(valueTypes[foundIndex]);
     }
 
     /**

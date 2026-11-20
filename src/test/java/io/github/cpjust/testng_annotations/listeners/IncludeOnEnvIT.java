@@ -21,6 +21,9 @@ import static org.hamcrest.Matchers.not;
 @Slf4j
 @Listeners(value = IncludeOnEnvListener.class)
 public class IncludeOnEnvIT extends BaseITEnvListener {
+    static final String METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS = "java:S4144"; // Suppress "Methods should not have identical implementations" warning
+    static final String SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED = "java:S5976"; // Suppress "Similar tests should be grouped in a single Parameterized test" warning
+
     private static final List<String> testsRun = new ArrayList<>();
 
     @Test
@@ -30,6 +33,7 @@ public class IncludeOnEnvIT extends BaseITEnvListener {
 
     @IncludeOnEnv(value = "unmatchEnv")
     @Test
+    @SuppressWarnings(SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED)
     public void testWithNonIncludedEnv_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();
@@ -49,6 +53,7 @@ public class IncludeOnEnvIT extends BaseITEnvListener {
 
     @IncludeOnEnv(value = {"unmatchEnvironment"}, propertyName = "environment")
     @Test
+    @SuppressWarnings({METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS, SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED})
     public void testWithNonIncludedEnv_customPropertyName_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();
@@ -93,6 +98,7 @@ public class IncludeOnEnvIT extends BaseITEnvListener {
 
     @IncludeOnEnv(value = {"dev|stage|unmatchEnv"}, delimiter = "|")
     @Test
+    @SuppressWarnings({METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS, SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED})
     public void testWithNonIncludedEnv_csvWithDelimiter_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();
@@ -100,6 +106,7 @@ public class IncludeOnEnvIT extends BaseITEnvListener {
 
     @IncludeOnEnv(value = {"dev|prod", "stage|unmatchEnv"}, delimiter = "|")
     @Test
+    @SuppressWarnings({METHODS_SHOULD_NOT_HAVE_IDENTICAL_IMPLEMENTATIONS, SIMILAR_TESTS_SHOULD_BE_PARAMETRIZED})
     public void testWithNonIncludedEnv_arrayOfCsvWithDelimiter_isNotRun() {
         testsRun.add(getCurrentMethodNameWithParams());
         TestUtils.failTestThatShouldNotRun();
