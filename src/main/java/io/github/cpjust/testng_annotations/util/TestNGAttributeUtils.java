@@ -50,7 +50,7 @@ public class TestNGAttributeUtils {
      * @return true when the method has a valid TestNG method.
      */
     public static boolean hasTestNGMethod(IInvokedMethod method) {
-        return (method == null) || (method.getTestMethod() == null);
+        return (method != null) && (method.getTestMethod() != null);
     }
 
     /**
@@ -60,7 +60,7 @@ public class TestNGAttributeUtils {
      * @return true when the result has a valid TestNG method.
      */
     public static boolean hasTestNGMethod(ITestResult result) {
-        return (result == null) || (result.getMethod() == null);
+        return (result != null) && (result.getMethod() != null);
     }
 
     /**

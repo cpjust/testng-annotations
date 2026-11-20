@@ -44,13 +44,13 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
      */
     @Override
     public void beforeConfiguration(ITestResult result) {
-        if (TestNGAttributeUtils.hasTestNGMethod(result)) {
+        if (!TestNGAttributeUtils.hasTestNGMethod(result)) {
             return;
         }
 
         ITestContext context = TestNGAttributeUtils.testContextFor(result);
         Method realMethod = TestNGMethodUtils.getMethod(result);
-        skipOrLogFailFast(context, TestNGMethodUtils.getMethodName(result), realMethod, executingClass(result, realMethod));
+        skipOrLogFailFast(context, TestNGMethodUtils.getMethodName(result), realMethod, getExecutingClass(result, realMethod));
     }
 
     /**
@@ -67,7 +67,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
 
         ITestContext context = TestNGAttributeUtils.testContextFor(result);
         Method realMethod = TestNGMethodUtils.getMethod(method);
-        skipOrLogFailFast(context, TestNGMethodUtils.getMethodName(method), realMethod, executingClass(result, realMethod));
+        skipOrLogFailFast(context, TestNGMethodUtils.getMethodName(method), realMethod, getExecutingClass(result, realMethod));
     }
 
     /**
@@ -92,13 +92,13 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
      */
     @Override
     public void beforeInvocation(IInvokedMethod method, ITestResult testResult) {
-        if (TestNGAttributeUtils.hasTestNGMethod(method)) {
+        if (!TestNGAttributeUtils.hasTestNGMethod(method)) {
             return;
         }
 
         ITestContext context = TestNGAttributeUtils.testContextFor(testResult);
         Method realMethod = TestNGMethodUtils.getMethod(method.getTestMethod());
-        skipOrLogFailFast(context, methodIdentity(method), realMethod, executingClass(testResult, realMethod));
+        skipOrLogFailFast(context, methodIdentity(method), realMethod, getExecutingClass(testResult, realMethod));
     }
 
     /**
@@ -110,11 +110,9 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     @Override
     public void afterInvocation(IInvokedMethod method, ITestResult testResult) {
         if (TestNGAttributeUtils.hasTestNGMethod(method)
-                || !TestNGAttributeUtils.hasTestResultStatus(testResult, ITestResult.FAILURE)) {
-            return;
+                && TestNGAttributeUtils.hasTestResultStatus(testResult, ITestResult.FAILURE)) {
+            recordFailure(testResult);
         }
-
-        recordFailure(testResult);
     }
 
     //endregion IInvokedMethodListener methods
@@ -204,6 +202,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     @Override
     public void onStart(ISuite suite) {
         if (suite != null) {
+            // Need to synchronize on the suite because multiple threads may be starting different contexts in the same suite.
             synchronized (suite) {
                 suite.removeAttribute(STATE_ATTRIBUTE);
             }
@@ -219,6 +218,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
     @Override
     public void onFinish(ISuite suite) {
         if (suite != null) {
+            // Need to synchronize on the suite because multiple threads may be starting different contexts in the same suite.
             synchronized (suite) {
                 suite.removeAttribute(STATE_ATTRIBUTE);
             }
@@ -245,7 +245,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
             return;
         }
 
-        SuiteState state = suiteState(context, false);
+        SuiteState state = getSuiteState(context, false);
 
         if ((state != null) && state.shouldSkip(executingClass)) {
             String message = SKIP_MESSAGE_PREFIX + state.messageFor(executingClass);
@@ -260,12 +260,13 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
 
     /**
      * Returns the runtime class of the instance executing a method.
+     * i.e. The class of the object that is running the test method, or the class that declared the method when no instance is available.
      *
      * @param result The result for the current invocation.
      * @param method The reflected method for the current invocation.
      * @return The runtime instance class, or the method's declaring class when no instance is available.
      */
-    private static Class<?> executingClass(ITestResult result, Method method) {
+    private static Class<?> getExecutingClass(ITestResult result, Method method) {
         Object instance = (result == null) ? null : result.getInstance();
 
         if (instance != null) {
@@ -283,7 +284,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
      * @param result The failed TestNG result.
      */
     private static void recordFailure(ITestResult result) {
-        if (TestNGAttributeUtils.hasTestNGMethod(result)) {
+        if (!TestNGAttributeUtils.hasTestNGMethod(result)) {
             return;
         }
 
@@ -294,7 +295,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
         }
 
         ITestContext context = TestNGAttributeUtils.testContextFor(result);
-        SuiteState state = suiteState(context, true);
+        SuiteState state = getSuiteState(context, true);
 
         if (state == null) {
             log.warn("Unable to record @FailFast failure because the TestNG suite context is unavailable.");
@@ -315,7 +316,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
      * @param create Whether state should be created when missing.
      * @return The suite state, or null when the context or suite is unavailable.
      */
-    private static SuiteState suiteState(ITestContext context, boolean create) {
+    private static SuiteState getSuiteState(ITestContext context, boolean create) {
         ISuite suite = TestNGAttributeUtils.suiteFor(context);
 
         if (suite == null) {
@@ -386,7 +387,6 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
      * Holds fail-fast failures for one suite.
      */
     static final class SuiteState {
-
         private final Map<Class<?>, String> failures = new LinkedHashMap<>();
 
         /**
@@ -428,6 +428,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
 
             return failures.entrySet().stream()
                     .filter(entry -> entry.getKey().isAssignableFrom(executingClass))
+                    // The most specific trigger is the one with the closest ancestor relationship to the executing class.
                     .reduce((mostSpecific, candidate) ->
                             mostSpecific.getKey().isAssignableFrom(candidate.getKey()) ? candidate : mostSpecific)
                     .map(Map.Entry::getValue)

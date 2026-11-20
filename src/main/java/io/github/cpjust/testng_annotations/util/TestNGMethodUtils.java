@@ -13,7 +13,6 @@ import java.lang.reflect.Method;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TestNGMethodUtils {
-
     /**
      * Returns the reflected Java method for a TestNG method instance.
      *

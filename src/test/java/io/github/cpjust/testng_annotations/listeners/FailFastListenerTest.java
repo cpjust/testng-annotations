@@ -85,7 +85,7 @@ class FailFastListenerTest {
             beforeTestRan.set(true);
         }
 
-        @org.testng.annotations.Test(groups = {"g1"})
+        @org.testng.annotations.Test(groups = {"g1"}, alwaysRun = true)
         public void actualTest() {
             testRan.set(true);
         }
@@ -132,7 +132,7 @@ class FailFastListenerTest {
             beforeClassRan.set(true);
         }
 
-        @org.testng.annotations.Test
+        @org.testng.annotations.Test(alwaysRun = true)
         public void testShouldBeSkipped() {
             throw new AssertionError("Test should be skipped after the @BeforeSuite failure");
         }
@@ -153,7 +153,7 @@ class FailFastListenerTest {
             beforeClassRan.set(true);
         }
 
-        @org.testng.annotations.Test
+        @org.testng.annotations.Test(alwaysRun = true)
         public void testRuns() {
             testRan.set(true);
         }
