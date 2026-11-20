@@ -5,7 +5,6 @@ import lombok.NonNull;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mockito;
 import org.testng.IInvokedMethod;
 import org.testng.ITestResult;
 import org.testng.ITestNGMethod;
@@ -20,6 +19,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.stream.Stream;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -183,7 +183,7 @@ class DisableBetweenDatesListenerTest {
         DisableBetweenDatesListener transformer = new DisableBetweenDatesListener(clock);
 
         Method method = testClass.getMethod(testMethod);
-        ITestAnnotation mockAnnotation = Mockito.mock(ITestAnnotation.class);
+        ITestAnnotation mockAnnotation = mock(ITestAnnotation.class);
 
         // Act
         if (expectedException != null) {
@@ -284,7 +284,7 @@ class DisableBetweenDatesListenerTest {
 
         Method method = testClass.getMethod(testMethod);
         IInvokedMethod invoked = mockInvokedMethod(method, testClass);
-        ITestResult result = Mockito.mock(ITestResult.class);
+        ITestResult result = mock(ITestResult.class);
 
         // Act & Assert
         if (expectedException != null) {
@@ -322,7 +322,7 @@ class DisableBetweenDatesListenerTest {
         DisableBetweenDatesListener transformer = new DisableBetweenDatesListener(clock);
 
         Method method = MethodAnnotatedCases.class.getMethod(methodName);
-        ITestAnnotation mockAnnotation = Mockito.mock(ITestAnnotation.class);
+        ITestAnnotation mockAnnotation = mock(ITestAnnotation.class);
 
         // Act
         assertDoesNotThrow(() -> transformer.transform(mockAnnotation, MethodAnnotatedCases.class, method));
@@ -359,7 +359,7 @@ class DisableBetweenDatesListenerTest {
 
         Method method = MethodAnnotatedCases.class.getMethod(methodName);
         IInvokedMethod invoked = mockInvokedMethod(method, MethodAnnotatedCases.class);
-        ITestResult result = Mockito.mock(ITestResult.class);
+        ITestResult result = mock(ITestResult.class);
 
         // Act & Assert
         if (expectedException != null) {
@@ -388,8 +388,8 @@ class DisableBetweenDatesListenerTest {
      * Creates a mock IInvokedMethod for testing beforeInvocation.
      */
     private static IInvokedMethod mockInvokedMethod(@NonNull Method method, Class<?> testClass) {
-        IInvokedMethod invoked = Mockito.mock(IInvokedMethod.class);
-        ITestNGMethod testMethod = Mockito.mock(ITestNGMethod.class);
+        IInvokedMethod invoked = mock(IInvokedMethod.class);
+        ITestNGMethod testMethod = mock(ITestNGMethod.class);
 
         when(invoked.getTestMethod()).thenReturn(testMethod);
         when(testMethod.getConstructorOrMethod()).thenReturn(new ConstructorOrMethod(method));

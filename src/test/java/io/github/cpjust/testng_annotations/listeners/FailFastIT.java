@@ -3,6 +3,7 @@ package io.github.cpjust.testng_annotations.listeners;
 import io.github.cpjust.testng_annotations.annotations.FailFast;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
@@ -12,7 +13,6 @@ import org.testng.annotations.Test;
  */
 @Slf4j
 public class FailFastIT {
-
     private static boolean beforeSuiteRan;
     private static boolean beforeClassRan;
     private static boolean testRan;
@@ -30,11 +30,16 @@ public class FailFastIT {
         log.info("FailFastIT.beforeClass ran as usual.");
     }
 
+    @AfterClass(alwaysRun = true)
+    public void afterClass() {
+        log.info("FailFastIT.afterClass ran as usual.");
+        Assert.assertTrue(testRan, "The test method should have run normally when no fail-fast trigger occurs");
+    }
+
     @Test
-    public void classCanRunNormallyWhenBeforeSuiteDoesNotFail() {
+    public void whenBeforeSuiteDoesNotFail_thenTestNGMethodsCanRunNormally() {
         testRan = true;
         Assert.assertTrue(beforeSuiteRan, "BeforeSuite should have run before the test");
         Assert.assertTrue(beforeClassRan, "BeforeClass(alwaysRun = true) should still run");
-        Assert.assertTrue(testRan, "The test method should run normally when no fail-fast trigger occurs");
     }
 }

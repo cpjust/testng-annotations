@@ -1,7 +1,6 @@
 package io.github.cpjust.testng_annotations.util;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.testng.IMethodInstance;
 import org.testng.ITestNGMethod;
 import org.testng.ITestResult;
@@ -11,6 +10,7 @@ import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -30,7 +30,7 @@ class TestNGMethodUtilsTest {
         assertNull(TestNGMethodUtils.getMethod((IMethodInstance) null),
                 "Null method instances should return null");
 
-        IMethodInstance methodInstance = Mockito.mock(IMethodInstance.class);
+        IMethodInstance methodInstance = mock(IMethodInstance.class);
         assertNull(TestNGMethodUtils.getMethod(methodInstance),
                 "Method instances without a TestNG method should return null");
 
@@ -42,8 +42,8 @@ class TestNGMethodUtilsTest {
     @Test
     void getMethod_methodInstance_whenMethodPresent_thenReturnJavaMethod() throws Exception {
         Method expectedMethod = SampleTarget.class.getMethod("sampleMethod");
-        IMethodInstance methodInstance = Mockito.mock(IMethodInstance.class);
-        ITestNGMethod testNgMethod = Mockito.mock(ITestNGMethod.class);
+        IMethodInstance methodInstance = mock(IMethodInstance.class);
+        ITestNGMethod testNgMethod = mock(ITestNGMethod.class);
 
         when(methodInstance.getMethod()).thenReturn(testNgMethod);
         when(testNgMethod.getConstructorOrMethod()).thenReturn(new ConstructorOrMethod(expectedMethod));
@@ -55,7 +55,7 @@ class TestNGMethodUtilsTest {
     @Test
     void getMethod_testNgMethod_whenMethodPresent_thenReturnJavaMethod() throws Exception {
         Method expectedMethod = SampleTarget.class.getMethod("sampleMethod");
-        ITestNGMethod testNgMethod = Mockito.mock(ITestNGMethod.class);
+        ITestNGMethod testNgMethod = mock(ITestNGMethod.class);
 
         when(testNgMethod.getConstructorOrMethod()).thenReturn(new ConstructorOrMethod(expectedMethod));
 
@@ -66,8 +66,8 @@ class TestNGMethodUtilsTest {
     @Test
     void getMethod_testResult_whenMethodPresent_thenReturnJavaMethod() throws Exception {
         Method expectedMethod = SampleTarget.class.getMethod("sampleMethod");
-        ITestResult result = Mockito.mock(ITestResult.class);
-        ITestNGMethod testNgMethod = Mockito.mock(ITestNGMethod.class);
+        ITestResult result = mock(ITestResult.class);
+        ITestNGMethod testNgMethod = mock(ITestNGMethod.class);
 
         when(result.getMethod()).thenReturn(testNgMethod);
         when(testNgMethod.getConstructorOrMethod()).thenReturn(new ConstructorOrMethod(expectedMethod));
@@ -85,12 +85,12 @@ class TestNGMethodUtilsTest {
         assertEquals(SAMPLE_TARGET_SAMPLE_METHOD, TestNGMethodUtils.getMethodName(method),
                 "Method formatting should use the declaring class simple name and method name");
 
-        ITestNGMethod testNgMethod = Mockito.mock(ITestNGMethod.class);
+        ITestNGMethod testNgMethod = mock(ITestNGMethod.class);
         when(testNgMethod.getConstructorOrMethod()).thenReturn(new ConstructorOrMethod(method));
         assertEquals(SAMPLE_TARGET_SAMPLE_METHOD, TestNGMethodUtils.getMethodName(testNgMethod),
                 "ITestNGMethod formatting should match the Java method format");
 
-        ITestResult result = Mockito.mock(ITestResult.class);
+        ITestResult result = mock(ITestResult.class);
         when(result.getMethod()).thenReturn(testNgMethod);
         assertEquals(SAMPLE_TARGET_SAMPLE_METHOD, TestNGMethodUtils.getMethodName(result),
                 "ITestResult formatting should match the Java method format");

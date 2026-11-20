@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Unit tests for {@link FailFastListener}.
  */
 class FailFastListenerTest {
-
     public static class FailureMessageBase {
         @FailFast
         public void failInBase() {
@@ -232,7 +231,7 @@ class FailFastListenerTest {
     }
 
     @Test
-    void givenBaseAndSubclassFailuresAreRecorded_messageFor_thenSkipMessageUsesMostSpecificFailure() {
+    void givenBaseAndSubclassFailuresAreRecorded_whenCallMessageFor_thenSkipMessageUsesMostSpecificFailure() {
         FailFastListener.SuiteState suiteState = new FailFastListener.SuiteState();
 
         suiteState.recordFailure(FailureMessageBase.class, "base failure");
@@ -272,6 +271,7 @@ class FailFastListenerTest {
                 suiteReference.set(finishedSuite);
             }
         });
+
         testng.run();
         return suiteReference.get();
     }

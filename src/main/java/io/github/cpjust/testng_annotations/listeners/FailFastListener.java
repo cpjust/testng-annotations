@@ -27,6 +27,8 @@ import java.util.Map;
  */
 @Slf4j
 public class FailFastListener implements IInvokedMethodListener, ITestListener, IConfigurationListener, ISuiteListener {
+    static final String BLOCKS_SHOULD_BE_SYNCHRONIZED_ON_PRIVATE_FINAL_FIELDS = "java:S2445"; // Suppress "Blocks should be synchronized on private final fields" warning.
+
     private static final String STATE_ATTRIBUTE = FailFastListener.class.getName() + ".state";
     private static final String LOG_FAIL_FAST_TRIGGERED = "Fail-fast triggered: {}";
     private static final String LOG_FAIL_FAST_ENABLED_FOR = "Fail-fast enabled for {}";
@@ -198,6 +200,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
      *
      * @param suite The starting TestNG suite.
      */
+    @SuppressWarnings(BLOCKS_SHOULD_BE_SYNCHRONIZED_ON_PRIVATE_FINAL_FIELDS)
     @Override
     public void onStart(ISuite suite) {
         if (suite != null) {
@@ -212,6 +215,7 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
      *
      * @param suite The completed TestNG suite.
      */
+    @SuppressWarnings(BLOCKS_SHOULD_BE_SYNCHRONIZED_ON_PRIVATE_FINAL_FIELDS)
     @Override
     public void onFinish(ISuite suite) {
         if (suite != null) {
@@ -263,9 +267,14 @@ public class FailFastListener implements IInvokedMethodListener, ITestListener, 
      */
     private static Class<?> executingClass(ITestResult result, Method method) {
         Object instance = (result == null) ? null : result.getInstance();
-        return (instance == null)
-                ? ((method == null) ? null : method.getDeclaringClass())
-                : instance.getClass();
+
+        if (instance != null) {
+            return instance.getClass();
+        } else if (method != null) {
+            return method.getDeclaringClass();
+        } else {
+            return null;
+        }
     }
 
     /**

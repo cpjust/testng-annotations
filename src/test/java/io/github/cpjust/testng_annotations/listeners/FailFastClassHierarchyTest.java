@@ -162,6 +162,11 @@ class FailFastClassHierarchyTest {
         }
     }
 
+    /**
+     * Verifies that a failing @FailFast method in one subclass does not skip methods in another subclass.
+     * Ex. If TestA fails in its BeforeClass, TestB should still run its BeforeClass and test method.
+     * The inherited AfterClass(alwaysRun = true) should still run for TestB, but not for TestA since it failed in its BeforeClass.
+     */
     @Test
     void whenFailInSubclassBeforeClass_thenOnlyThatSubclassIsSkipped_and_otherSubclassRuns() {
         TestA.beforeClassRan.set(false);
@@ -193,6 +198,10 @@ class FailFastClassHierarchyTest {
                 listenerAdapter.getConfigurationFailures(), not(empty()));
     }
 
+    /**
+     * Verifies that a failing @FailFast method in a shared BeforeSuite hook skips all subsequent tests in parallel classes.
+     * Ex. If TestA and TestB are running in parallel, and a shared BeforeSuite fails, both classes should skip their tests.
+     */
     @Test
     void whenSharedBeforeSuiteFails_inParallelClasses_thenAlwaysRunHooksAreSkippedInBothClasses() {
         ParallelTestA.beforeClassRan.set(false);
@@ -222,6 +231,11 @@ class FailFastClassHierarchyTest {
                 listenerAdapter.getConfigurationFailures(), not(empty()));
     }
 
+    /**
+     * Verifies that a failing @FailFast method in one thread does not prevent a method already running in another thread from completing.
+     * However, any queued methods checked after the fail-fast trigger should be skipped.
+     * Ex. If TestClass starts running test methods test1 and test2 in parallel, and test3 is queued, then test1 fails with @FailFast, test2 should be allowed to complete, but test3 should be skipped.
+     */
     @Test
     void whenFailFastTriggersDuringParallelExecution_thenRunningMethodCompletesAndQueuedMethodIsSkipped() {
         ParallelRaceBoundaryTest.alreadyRunningMethodStarted = new CountDownLatch(1);
