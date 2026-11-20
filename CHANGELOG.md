@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.6.0] - 2026-09-15
+## [1.6.0] - 2026-11-20
 ### Added
 - Added a `@FailFast` annotation and `FailFastListener` to skip all later TestNG methods when a `@BeforeSuite` or other annotated method fails, even when `alwaysRun = true` is set.
 
